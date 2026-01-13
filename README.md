@@ -330,13 +330,15 @@ Allow a brief period for the configuration to take effect, and the endpoint grou
 
 Navigate to Networks Security \-\> Common components \-\> Security profiles, and select "Create Security profile." Configure the settings as follows:
 
-* **Name:** `ui-nsi-demo-sp`  
-* **Purpose:** NSI In-Band  
+* **Name:** `ui-nsi-demo-profile`  
+* **Purpose:** NSI Out-of-Band  
 * **Traffic directed to:**  
   * **Project:** `<Consumer project ID>`  
   * **Endpoint group:** `ui-nsi-demo-epg` (The endpoint group configured previously in the consumer project)
 
 Select "Create."
+
+<img src="images/img5.png" alt="Picture8" width="800">
 
 Select the "Security profile groups" tab, and select "Create profile group."
 
@@ -344,16 +346,16 @@ Select the "Security profile groups" tab, and select "Create profile group."
 
 Configure the settings as follows:
 
-* **Name:** `ui-nsi-demo-spg`  
-* **Purpose:** NIS In-Band  
-* **Custom Intercept profile:** `ui-nsi-demo-sp` (The security profile created in the preceding step)
+* **Name:** `ui-nsi-demo-profile-group`  
+* **Purpose:** NIS Out-of-Band  
+* **Custom mirroring profile:** `ui-nsi-demo-profile` (The security profile created in the preceding step)
 
 Select "Create."  
-<img src="images/Picture10.png" alt="Picture10" width="500">
+<img src="images/img6.png" alt="Picture8" width="800">
 
 ## Create Firewall Rules
 
-Navigate to Cloud NGFW \-\> Firewall policies, and select "Create firewall policy." Configure the settings as follows:
+Switch to the **Consumer project**, navigate to Cloud NGFW \-\> Firewall policies, and select "Create firewall policy." Configure the settings as follows:
 
 * **Policy Name:** `ui-nsi-demo-consumer-policy`  
 * **Policy Type:** VPC policy  
@@ -361,30 +363,90 @@ Navigate to Cloud NGFW \-\> Firewall policies, and select "Create firewall polic
 
 Select "Continue."
 
-Select "Create firewall rule." (Two firewall rules are required: one for egress to destination `0.0.0.0/0` and one for ingress from source `0.0.0.0/0`, with the action set to apply the security profile group created for NSI In-Band.)
+In the **Add rules** section, we don't need to configure that, as we are doing mirroring traffic not intercept, just click "Continue"
+
+In the **Add mirroring rules** Select "Create mirroring rule." (Two mirroring rules are required: one for egress to destination `0.0.0.0/0` and one for ingress from source `0.0.0.0/0`, with the action set to apply the security profile group created for NSI Out-of-Band.)
 
 * **Ingress rule:**  
   * **Priority:** 10  
   * **Direction of traffic:** Ingress  
-  * **Action on match:** Apply security profile group.  
-    * **Purpose:** NSI In-Band  
-    * **Security profile group:** `ui-nsi-demo-spg`  
+  * **Action on match:** Mirror  
+    * **Security profile group:** `ui-nsi-demo-profile-group`  
   * **Source filters:** IPv4: `0.0.0.0/0`  
   * All other settings should remain at their default values.  
 * **Egress rule:**  
   * **Priority:** 11  
   * **Direction of traffic:** Egress  
-  * **Action on match:** Apply security profile group.  
-    * **Purpose:** NSI In-Band  
-    * **Security profile group:** `ui-nsi-demo-spg`  
+  * **Action on match:** Mirror  
+    * **Security profile group:** `ui-nsi-demo-profile-group`  
   * **Destination filters:** IPv4: `0.0.0.0/0`  
   * All other settings should remain at their default values.
 
-Select "Continue" and bypass the "Add mirroring rules" section, as interception is being applied instead of mirroring.
+
 
 In the **Associate policy with networks** section, select "Associate." Select the `ui-nsi-consumer-vpc` and select "Associate."  
 <img src="images/Picture11.png" alt="Picture11" width="500">  
 Select "Create."
+
+
+# Security Lifecycle Report Generation
+
+## Export logs from VM-Series Firewall endpoint
+
+### Get the firewall managment IP address
+
+### 1. In Cloud Shell, set the firewall’s name and zone to environment variables (FW_NAME and FW_ZONE)
+```
+read FW_NAME FW_ZONE <<< $(gcloud compute instances list \
+    --filter="tags.items=panw-tutorial" \
+    --format="value(name, zone)")
+```
+
+### 2. Access the web management console (If you have multiple FW instances in the instance group, you would need to repeat below steps to get all the logs for individual FW instance)
+
+```
+ https://MGMT_ADDRESS
+```
+### Username: ***admin***
+### Password: ***PaloAlto@123***
+> [!NOTE]
+> It is not a good practise to hardcode password in the NGFW instance, here is just for demo purpose and ease the steps of configuration. Highly recommand you set complex password during the intial setup of the firewall instance, and only restrict the access only allow from trusted IP addresses.
+
+### 3. Download the NGFW Stats Dump file (only 7-days traffic available through the UI)
+
+<img src="images/img7.png" alt="Picture12" width="1000">
+
+### Your can generate longer period of data from the VM-Series using CLI:
+
+```
+scp export stats-dump start-time equal <YYYY/MM/DD@HH:MM:SS> end-time equal <YYYY/MM/DD@HH:MM:SS> to <username>@<scp-server-ip>:<file-path>
+```
+
+## Generate the SLR (Security Lifecycle Report) 
+
+### 1. Access the CSP (Customer support portal) at URL: https://support.paloaltonetworks.com/Support/Index
+
+### 2. Navigate to **Resources** -> **Security Lifecycle Review**
+
+#### Input Account Information:
+
+<img src="images/img8.png" alt="Picture12" width="500">
+
+#### Upload the stats dump file you downloaded in previous steps, support multi-files upload.
+
+<img src="images/img9.png" alt="Picture12" width="500">
+
+#### You can customize the report and download the report as PDF
+
+<img src="images/img10.png" alt="Picture12" width="800">
+
+</br>
+
+<img src="images/img11.png" alt="Picture12" width="800">
+
+</br>
+
+<img src="images/img12.png" alt="Picture12" width="800">
 
 # (Optional) Deletion
 
