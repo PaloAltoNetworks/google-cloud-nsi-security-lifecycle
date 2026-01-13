@@ -1,4 +1,4 @@
-# UI-Based Deployment Guide for Software NGFW with Network Security Integration
+# Security Lifecycle for Google using NSI
 
 
 This tutorial shows how to deploy Palo Alto Networks Software Firewalls in Google Cloud, utilizing either the *in-line* or *out-of-band* deployment model within the [Network Security Integration](https://cloud.google.com/network-security-integration/docs/nsi-overview) (NSI).  NSI enables you to gain  visibility and security for your VPC network traffic, without requiring any changes to your network infrastructure.  
@@ -152,10 +152,8 @@ The network firewall policy associated with the `consumer-vpc` contains two rule
 
 ## Requirements
 
-> [!WARNING] 
-> The *in-line* model is currently in private preview and must be enabled for your Google Cloud account. 
 
-1. A Google Cloud project.
+1. Two Google Cloud projects (Producer and Consumer).
 2. Access to [Cloud Shell](https://shell.cloud.google.com). 
 3. The following IAM Roles:
 
@@ -236,11 +234,10 @@ In the `producer` directory, use the terraform plan to create the producer's VPC
     export <b>ZONE</b>=<i>us-west1-a</i>
     export <b>BACKEND_SERVICE</b>=<i>https://www.googleapis.com/compute/v1/projects/your-project-id/regions/us-west1/backendServices/panw-nsi-lb</i></pre>
 
-7. **Copy-and-paste** the `ENVIRONMENT_VARIABLES` output into Cloud Shell to set environment variables.
 
 > [!IMPORTANT] 
-> The `init-cfg.txt` includes `plugin-op-commands=geneve-inspect:enable` bootstrap parameter, allowing firewalls to handle GENEVE encapsulated traffic forwarded via packet intercept. 
-> If this is not configured, packet intercept traffic will be dropped. 
+> The `init-cfg.txt` includes `plugin-op-commands=geneve-inspect:enable` bootstrap parameter, allowing firewalls to handle GENEVE encapsulated traffic forwarded via packet intercept or packet mirror. 
+> If this is not configured, packet intercept/mirror traffic will be dropped. 
 
 <br>
 
@@ -248,16 +245,19 @@ In the `producer` directory, use the terraform plan to create the producer's VPC
 
 ## Creation of Load Balancer Forwarding Rule
 
+> [!NOTE]
+> For the Security Lifecycle Assessment, we will use **mirror** mode of the NSI. We will not **block** any traffic, the purpose is to understand if there are any existing security issues or risks.
+
 Navigate to Network Services, and select the Load Balancer (`ui-nsi-panw-lb`) provisioned by the Terraform Template. Select "Edit" and proceed to the Frontend configuration. Choose "Add Frontend IP and port" and configure the Frontend settings as follows:
 
 * **Name:** `ui-nsi-panw-lb-forwarding-rule` (This serves as the rule's identifier)  
 * **IP Address:** Ephemeral (Custom) \- A Static IP address is required to align with the Firewall configuration.  
 * **Custom ephemeral IP address:** `10.0.1.3`  
-* **Port:** Single  
-* **Port Number:** `6081`
+* **Port:** All  
+* **Packet Mirroring:** `Enable the load balancer for Packet Mirroring`
 
 Upon completion, select "Done," then select "Update" to activate the Forwarding Rule for the Load Balancer.  
-<img src="images/Picture1.png" alt="Picture1" width="500">
+<img src="images/img1.png" alt="Picture1" width="500">
 
 Allow a brief period for the configuration to take effect, after which the Frontend Health Check status should indicate "100% health."Creation of NSI Deployment Group
 
@@ -268,9 +268,9 @@ Allow a brief period for the configuration to take effect, after which the Front
 Navigate to Network Security \-\> Deployment groups, and select "Create deployment group." Configure the settings as follows:
 
 * **Name:** `ui-nsi-demo-deployment-group` (Or a preferred, descriptive name)  
-* **Network:** `ui-nis-data` (Pre-provisioned by the Terraform template; this is the location of the NGFW data network)  
-* **Purpose:** NSI In-Band (Intercept mode; NSI Out-of-Band may be selected for traffic mirroring solely for monitoring purposes)  
-  <img src="images/Picture3.png" alt="Picture3" width="500">
+* **Network:** `ui-nsi-data` (Pre-provisioned by the Terraform template; this is the location of the NGFW data network)  
+* **Purpose:** `NSI Out-of-Band` (Mirror modes)  
+  <img src="images/img2.png" alt="Picture3" width="500">
 
 
 Select "Create Intercept deployment" and configure the settings:
@@ -289,7 +289,7 @@ Select "Create" to proceed.
 
 After a short waiting period, the intercept deployment's status should transition to "Active." This concludes the configuration within the Producer project. The process now continues with the Consumer project, where the protected resources reside.On the Consumer ProjectCreation of Intercept Endpoint & Endpoint Group
 
-<img src="images/Picture5.png" alt="Picture5" width="500">
+<img src="images/img3.png" alt="Picture5" width="500">
 
 # On the Consumer project
 
@@ -297,13 +297,15 @@ After a short waiting period, the intercept deployment's status should transitio
 
 Navigate to Network Security \-\> Endpoint groups, and select "Create endpoint group." Configure the settings as follows:
 
-* **Name:** `ui-nsi-demo-epg`  
-* **Purpose:** NSI In-Band (For interception; NSI Out-of-Band is used for mirroring and must align with the prior settings in the Deployment Groups within the Producer project)
+* **Name:** `ui-nsi-demo-epgr`  
+* **Purpose:** NSI Out-of-Band (For mirroring)
 
 For the **Deployment group**, select **Manual Entry**, and input the following information:
 
 * **Project ID:** `<Your Producer project ID>`  
 * **Deployment group name:** `ui-nsi-demo-deployment-group` (The deployment group name created previously in the producer project)
+
+<img src="images/img4.png" alt="Picture5" width="500">
 
 Select "Continue." In the "Associations" section, select "Add endpoint group association." Configure the settings as follows:
 
