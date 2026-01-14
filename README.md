@@ -402,7 +402,7 @@ Navigate to Networks Security \-\> Common components \-\> Security profiles, and
 
 Select "Create."
 
-<img src="images/img5.png" alt="Picture8" width="800">
+<img src="images/img5.png" alt="Picture8" width="500">
 
 Select the "Security profile groups" tab, and select "Create profile group."
 
@@ -415,7 +415,7 @@ Configure the settings as follows:
 * **Custom mirroring profile:** `ui-nsi-demo-profile` (The security profile created in the preceding step)
 
 Select "Create."  
-<img src="images/img6.png" alt="Picture8" width="800">
+<img src="images/img6.png" alt="Picture8" width="500">
 
 ## Create Firewall Rules
 
@@ -471,8 +471,10 @@ read FW_NAME FW_ZONE <<< $(gcloud compute instances list \
 ```
  https://MGMT_ADDRESS
 ```
-### Username: ***admin***
-### Password: ***PaloAlto@123***
+***Username***: ```admin```
+
+***Password***: ```PaloAlto@123```
+
 > [!NOTE]
 > It is not a good practise to hardcode password in the NGFW instance, here is just for demo purpose and ease the steps of configuration. Highly recommand you set complex password during the intial setup of the firewall instance, and only restrict the access only allow from trusted IP addresses.
 
@@ -480,7 +482,7 @@ read FW_NAME FW_ZONE <<< $(gcloud compute instances list \
 
 <img src="images/img7.png" alt="Picture12" width="1000">
 
-### Your can generate longer period of data from the VM-Series using CLI:
+### Your can generate longer period of data (if you need more than 7 days logs) from the VM-Series using CLI:
 
 ```
 scp export stats-dump start-time equal <YYYY/MM/DD@HH:MM:SS> end-time equal <YYYY/MM/DD@HH:MM:SS> to <username>@<scp-server-ip>:<file-path>
