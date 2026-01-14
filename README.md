@@ -490,29 +490,33 @@ scp export stats-dump start-time equal <YYYY/MM/DD@HH:MM:SS> end-time equal <YYY
 
 ## Generate the SLR (Security Lifecycle Report) 
 
-### 1. Access the CSP (Customer support portal) at URL: https://support.paloaltonetworks.com/Support/Index
+*   Access the CSP (Customer support portal) at URL: https://support.paloaltonetworks.com/Support/Index
 
-### 2. Navigate to **Resources** -> **Security Lifecycle Review**
+*   Navigate to **Resources** -> **Security Lifecycle Review**
 
-#### Input Account Information:
+    * ***Input Account Information:***
 
-<img src="images/img8.png" alt="Picture12" width="500">
+      <img src="images/img8.png" alt="Picture12" width="500">
 
-#### Upload the stats dump file you downloaded in previous steps, support multi-files upload.
+    * ***Upload the stats dump file you downloaded in previous steps, support multi-files upload.***
 
-<img src="images/img9.png" alt="Picture12" width="500">
+      <img src="images/img9.png" alt="Picture12" width="500">
 
-#### You can customize the report and download the report as PDF
+    * ***You can customize the report and download the report as PDF***
 
-<img src="images/img10.png" alt="Picture12" width="800">
+      <img src="images/img10.png" alt="Picture12" width="800">
+
+      </br>
+
+      <img src="images/img11.png" alt="Picture12" width="800">
+
+      </br>
+
+      <img src="images/img12.png" alt="Picture12" width="800">
+
 
 </br>
-
-<img src="images/img11.png" alt="Picture12" width="800">
-
 </br>
-
-<img src="images/img12.png" alt="Picture12" width="800">
 
 # (Optional) Deletion
 
@@ -522,39 +526,62 @@ Navigate to Network Security \-\> Cloud NGFW \-\> Firewall policies.
 
 Locate the Network firewall policy created by name.
 
-### Remove the firewall policy associations.
+* ***Remove the firewall policy associations.***
 
-<img src="images/Picture12.png" alt="Picture12" width="500">
+  <img src="images/Picture12.png" alt="Picture12" width="500">
 
-## Delete the Firewall policy.
+* ***Delete the Firewall policy.***
 
-<img src="images/Picture13.png" alt="Picture13" width="500">
+  <img src="images/Picture13.png" alt="Picture13" width="500">
 
-## Delete the Security Profile Group and Security Profile (Org-level permission is required).
+* ***Delete the Security Profile Group and Security Profile (Org-level permission is required).***
 
-Navigate to Network Security \-\> Common components \-\> Security profiles \-\> Security profile groups.
+  * Navigate to Network Security \-\> Common components \-\> Security profiles \-\> Security profile groups.
 
-<img src="images/Picture20.png" alt="Picture20" width="500">
+    <img src="images/Picture20.png" alt="Picture20" width="500">
 
 
-Select and delete the security profile group created.
+    Select and delete the security profile group created.
 
-Navigate to Network Security \-\> Common components \-\> Security profiles.
+  * Navigate to Network Security \-\> Common components \-\> Security profiles.
 
-Select and delete the security profiles created.
+    Select and delete the security profiles created.
 
-<img src="images/Picture19.png" alt="Picture19" width="500">
+    <img src="images/Picture19.png" alt="Picture19" width="500">
 
-Navigate to Network Security \-\> Cloud NSI \-\> Endpoint groups. Select the created endpoint group, select the association created, and delete it. (The association must be removed prior to deleting the endpoint group.) Subsequently, delete the endpoint group.
+* ***Navigate to Network Security \-\> Cloud NSI \-\> Endpoint groups. Select the created endpoint group, select the association created, and delete it. (The association must be removed prior to deleting the endpoint group.) Subsequently, delete the endpoint group.***
 
-<img src="images/Picture16.png" alt="Picture16" width="500">
+  <img src="images/Picture16.png" alt="Picture16" width="500">
+
+
+* Run `terraform destroy` from the `consumer` directory.
+
+    ```
+    cd
+    cd google-cloud-nsi-tutorial/consumer
+    terraform destroy
+    ```
+
+* Enter `yes` to delete all consumer resources.
+
+</br>
 
 ## On the Producer Project:
 
-Navigate to Network Security \-\> Cloud NSI \-\> Deployment groups. Select the created deployment group. Select the intercept deployment endpoint, and delete it.
+* ***Navigate to Network Security \-\> Cloud NSI \-\> Deployment groups. Select the created deployment group. Select the intercept deployment endpoint, and delete it.***
 
-<img src="images/Picture17.png" alt="Picture17" width="700">
+  <img src="images/Picture17.png" alt="Picture17" width="700">
 
-The deployment group may now be deleted.  
+* ***The deployment group may now be deleted.***
 
-<img src="images/Picture18.png" alt="Picture18" width="700">
+  <img src="images/Picture18.png" alt="Picture18" width="700">
+
+* ***Run `terraform destroy` from the `/producer` directory.***
+
+    ```
+    cd
+    cd google-cloud-nsi-tutorial/producer
+    terraform destroy
+    ```
+
+* ***Enter `yes` to delete all producer resources.***
