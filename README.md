@@ -457,36 +457,40 @@ Select "Create."
 
 ## Export logs from VM-Series Firewall endpoint
 
-### Get the firewall managment IP address
+* ***Get the firewall managment IP address***
 
-### 1. In Cloud Shell, set the firewall’s name and zone to environment variables (FW_NAME and FW_ZONE)
-```
-read FW_NAME FW_ZONE <<< $(gcloud compute instances list \
-    --filter="tags.items=panw-tutorial" \
-    --format="value(name, zone)")
-```
+  * ***In Cloud Shell, set the firewall’s name and zone to environment variables (FW_NAME and FW_ZONE)***
 
-### 2. Access the web management console (If you have multiple FW instances in the instance group, you would need to repeat below steps to get all the logs for individual FW instance)
+    ```
+    read FW_NAME FW_ZONE <<< $(gcloud compute instances list \
+        --filter="tags.items=panw-tutorial" \
+        --format="value(name, zone)")
+    ```
 
-```
- https://MGMT_ADDRESS
-```
-***Username***: ```admin```
+  * ***Access the web management console (If you have multiple FW instances in the instance group, you would need to repeat below steps to get all the logs for individual FW instance)***
 
-***Password***: ```PaloAlto@123```
+    ```
+    https://MGMT_ADDRESS
+    ```
+    ***Username:*** ```admin```
 
-> [!NOTE]
-> It is not a good practise to hardcode password in the NGFW instance, here is just for demo purpose and ease the steps of configuration. Highly recommand you set complex password during the intial setup of the firewall instance, and only restrict the access only allow from trusted IP addresses.
+    ***Password:*** ```PaloAlto@123```
 
-### 3. Download the NGFW Stats Dump file (only 7-days traffic available through the UI)
+    > [!NOTE]
+    > It is not a good practise to hardcode password in the NGFW instance, here is just for demo purpose and ease the steps of configuration. Highly recommand you set complex password during the intial setup of the firewall instance, and only restrict the access only allow from trusted IP addresses.
 
-<img src="images/img7.png" alt="Picture12" width="1000">
+    </br>
 
-### Your can generate longer period of data (if you need more than 7 days logs) from the VM-Series using CLI:
 
-```
-scp export stats-dump start-time equal <YYYY/MM/DD@HH:MM:SS> end-time equal <YYYY/MM/DD@HH:MM:SS> to <username>@<scp-server-ip>:<file-path>
-```
+  * ***Download the NGFW Stats Dump file (only 7-days traffic available through the UI)***
+
+    <img src="images/img7.png" alt="Picture12" width="1000">
+
+  * ***Your can generate longer period of data (if you need more than 7 days logs) from the VM-Series using CLI:***
+
+    ```
+    scp export stats-dump start-time equal <YYYY/MM/DD@HH:MM:SS> end-time equal <YYYY/MM/DD@HH:MM:SS> to <username>@<scp-server-ip>:<file-path>
+    ```
 
 ## Generate the SLR (Security Lifecycle Report) 
 
