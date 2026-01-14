@@ -1,7 +1,17 @@
 # Security Lifecycle for Google using NSI
 
 
-This tutorial shows how to deploy Palo Alto Networks Software Firewalls in Google Cloud, utilizing either the *in-line* or *out-of-band* deployment model within the [Network Security Integration](https://cloud.google.com/network-security-integration/docs/nsi-overview) (NSI).  NSI enables you to gain  visibility and security for your VPC network traffic, without requiring any changes to your network infrastructure.  
+This document provides a comprehensive guide to leveraging the Network Security Integration (NSI) mirroring mode with Palo Alto Networks Software Firewalls. The primary objective is to enable organizations to perform a Security Lifecycle Review (SLR) on their existing Google Cloud environments.
+
+**Key Objectives:**
+
+1.  **Deploy with NSI Mirroring Mode:** Implement an out-of-band inspection model that mirrors network traffic to Palo Alto Networks Software Firewalls. This deployment method ensures zero disruption to live traffic and requires no architectural changes to the existing customer environment, allowing for a seamless integration with minimum effort.
+
+2.  **Identify Security Risks and Posture:** Utilize the advanced threat detection capabilities of Palo Alto Networks to analyze the mirrored traffic. This process generates a Security Lifecycle Report (SLR) that provides deep visibility into the current security posture, identifying potential vulnerabilities, malware, data exfiltration risks, and other cyber threats present in the network.
+
+3.  **Transition to Production with NSI Intercept Mode:** Armed with the insights from the SLR, organizations can effectively plan and execute a transition to the NSI *in-line* (intercept) mode. This production-ready configuration actively steers traffic through the firewalls, enforcing security policies to block threats and protect customer resources, thereby completing the journey from visibility to active protection. For the details steps, you can refer to [Deploy NSI intercept mode](https://github.com/PaloAltoNetworks/google-cloud-nsi-ui-demo) 
+
+This tutorial details the deployment of these models within the [Network Security Integration](https://cloud.google.com/network-security-integration/docs/nsi-overview) (NSI) framework. NSI enables you to gain visibility and security for your VPC network traffic, without requiring any changes to your network infrastructure.
 
 The functionality of each model is summarized as follows:
 
@@ -135,14 +145,14 @@ The network firewall policy associated with the `consumer-vpc` contains two rule
 
 1. The `web-vm` makes a request to the internet. The request is evaluated against the rules within the Network Firewall Policy associated with the `consumer-vpc`.
 2. The request matches the `EGRESS` rule (priority: `10`) that specifies a security profile group as its action.
-3. The request is then encapsulated through the `endpoint association` to the producer environment.
-4. Within the producer environment, the `intercept deployment group` directs traffic to the `intercept deployment` located in the same zone as the `web-vm`.
-5. The internal load balancer forwards the traffic to an available firewall for deep packet inspection.
+3. The request is then encapsulated and mirrored through the `endpoint association` to the producer environment.
+4. Within the producer environment, the `intercept deployment group` mirror the traffic to the `intercept deployment` located in the same zone as the `web-vm`.
+5. The internal load balancer forward the traffic to an available firewall for deep packet inspection.
 
 #### Traffic from Producer
 <img src="images/diagram_flow2.png" width="100%">
 
-1. If the firewall permits the traffic, it is returned to the `web-vm` via the consumer's `endpoint association`.
+1. If the firewall permits the traffic, it is returned to the `web-vm` via the consumer's `endpoint association`. (This is only for In-Line mode, for out-of-band mode this will not happen, the original traffic will flow as usual)
 2. The local route table of the `consumer-vpc` routes traffic to the internet via the Cloud NAT.
 3. The session is established with the internet destination and is continuously monitored by the firewall. 
 
@@ -180,8 +190,8 @@ In the `producer` directory, use the terraform plan to create the producer's VPC
 1. In [Cloud Shell](https://shell.cloud.google.com), clone the repository change to the `producer` directory. 
 
     ```
-    git clone https://github.com/PaloAltoNetworks/google-cloud-nsi-demo.git
-    cd google-cloud-nsi-demo/producer
+    git clone https://github.com/PaloAltoNetworks/google-cloud-nsi-security-lifecycle.git
+    cd google-cloud-nsi-security-lifecycle/producer
     ```
 
 2. Create a `terraform.tfvars`.
@@ -239,6 +249,60 @@ In the `producer` directory, use the terraform plan to create the producer's VPC
 > The `init-cfg.txt` includes `plugin-op-commands=geneve-inspect:enable` bootstrap parameter, allowing firewalls to handle GENEVE encapsulated traffic forwarded via packet intercept or packet mirror. 
 > If this is not configured, packet intercept/mirror traffic will be dropped. 
 
+## Create Consumer Environment
+
+> [!NOTE] 
+> This is not required if assessment customer existing environmenat, and this consumer environment is just for the demo purpose.
+
+In the `consumer` directory, use the terraform plan to create a consumer environment. The terraform plan creates a VPC (`consumer-vpc`) , two debian VMs (`client-vm` & `web-vm`), and a GKE cluster (`cluster1`).
+
+> [!NOTE]
+> If you already have an existing consumer environment, skip to [Create Intercept Endpoint Group](#create-intercept-endpoint--endpoint-group).
+
+1. In Cloud Shell, change to the `consumer` directory.
+
+    ```
+    cd
+    cd google-cloud-nsi-security-lifecycle/consumer
+    ```
+
+2. Create a `terraform.tfvars`
+
+    ```
+    cp terraform.tfvars.example terraform.tfvars
+    ```
+
+3. Edit `terraform.tfvars` by setting values for the following variables:  
+   
+
+    | Variable | Description | Default |
+    | :---- | :---- | :---- |
+    | `project_id` | The project ID of the consumer environment. | `null` |
+    | `mgmt_allowed_ips` | A list of IPv4 addresses that can access the VMs on `TCP:80,22`. | `["0.0.0.0/0"]` |
+    | `region` | The region to deploy the consumer resources. | `us-west1` |
+
+
+4. Initialize and apply the terraform plan.
+
+    ```
+    terraform init
+    terraform apply
+    ```
+
+    Enter `yes` to apply the plan.
+
+5. After the apply completes, terraform displays the following message:
+
+    <pre>
+    export <b>CONSUMER_PROJECT</b>=<i>your-project-id</i>
+    export <b>CONSUMER_VPC</b>=<i>consumer-vpc</i>
+    export <b>REGION</b>=<i>us-west1</i>
+    export <b>ZONE</b>=<i>us-west1-a</i>
+    export <b>CLIENT_VM</b>=<i>client-vm</i>
+    export <b>CLUSTER</b>=<i>cluster1</i>
+    export <b>ORG_ID</b>=<i>$(gcloud projects describe your-project-id --format=json | jq -r '.parent.id')</i></pre>
+
+<br>
 <br>
 
 # On the Producer Project
