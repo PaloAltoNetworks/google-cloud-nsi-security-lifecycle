@@ -255,7 +255,7 @@ In the `producer` directory, use the terraform plan to create the producer's VPC
 > [!NOTE] 
 > This is not required if assessment customer existing environmenat, and this consumer environment is just for the demo purpose.
 
-In the `consumer` directory, use the terraform plan to create a consumer environment. The terraform plan creates a VPC (`consumer-vpc`) , two debian VMs (`client-vm` & `web-vm`), and a GKE cluster (`cluster1`).
+In the `consumer` directory, use the terraform plan to create a consumer environment. The terraform plan creates a VPC (`consumer-vpc`) , two debian VMs (`client-vm` & `web-vm`), and a GKE cluster (`cluster1`) (optinal).
 
 > [!NOTE]
 > If you already have an existing consumer environment, skip to [Create Intercept Endpoint Group](#create-intercept-endpoint--endpoint-group).
