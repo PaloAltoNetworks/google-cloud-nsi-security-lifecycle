@@ -8,6 +8,7 @@ mgmt_public_ip  = true
 region          = "us-west1"
 image_name      = "vmseries-flex-bundle2-1126"
 
+
 # ------------------------------------------------
 # Optional
 # ------------------------------------------------
@@ -19,3 +20,4 @@ csp_pin_id       = ""
 csp_pin_value    = ""
 max_firewalls    = 1
 min_firewalls    = 1
+mirroring_mode   = true

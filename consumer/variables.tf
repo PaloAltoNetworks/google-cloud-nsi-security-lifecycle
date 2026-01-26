@@ -26,3 +26,8 @@ variable "subnet_cidr" {
   type        = string
 }
 
+variable "create_gke" {
+  description = "Whether to create the GKE cluster."
+  type        = bool
+  default     = false
+}

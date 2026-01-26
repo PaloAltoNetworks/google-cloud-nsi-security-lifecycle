@@ -204,6 +204,7 @@ resource "google_compute_instance" "client" {
 # -------------------------------------------------------------------------------------
 
 module "gke" {
+  count  = var.create_gke ? 1 : 0
   source = "terraform-google-modules/kubernetes-engine/google"
   version                    = "36.1.0"
   project_id                  = var.project_id
@@ -241,10 +242,10 @@ module "gke" {
 }
 
 data "google_container_cluster" "main" {
-  name     = module.gke.name
+  count    = var.create_gke ? 1 : 0
+  name     = module.gke[0].name
   location = data.google_compute_zones.available.names[0]
 }
-
 
 # Create the Secret Manager secret container
 resource "google_secret_manager_secret" "ngfw_ca" {

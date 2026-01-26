@@ -148,6 +148,21 @@ resource "google_compute_region_backend_service" "main" {
 }
 
 
+resource "google_compute_forwarding_rule" "main" {
+  name                   = "${local.prefix}panw-lb-rule"
+  region                 = var.region
+  load_balancing_scheme  = "INTERNAL"
+  backend_service        = google_compute_region_backend_service.main.id
+  ip_address             = cidrhost(var.subnet_cidr_data, 4)
+  all_ports              = false
+  ports                  = ["6081"]
+  ip_protocol            = "UDP"
+  network                = google_compute_network.data.id
+  subnetwork             = google_compute_subnetwork.data.id
+  is_mirroring_collector = var.mirroring_mode
+}
+
+
 # -------------------------------------------------------------------------------------
 #  Create firewall service account, instance template, MIG, and autoscaler.
 # -------------------------------------------------------------------------------------

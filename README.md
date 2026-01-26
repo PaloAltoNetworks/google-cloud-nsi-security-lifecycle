@@ -184,8 +184,9 @@ In the `producer` directory, use the terraform plan to create the producer's VPC
 > [!CAUTION]
 > It is required to make your cloudshell git support large file download, run below command to install git lfs before you start to clone the source code.
   
+    
     sudo apt install git-lfs
-
+    
 
 1. In [Cloud Shell](https://shell.cloud.google.com), clone the repository change to the `producer` directory. 
 
@@ -209,7 +210,7 @@ In the `producer` directory, use the terraform plan to create the producer's VPC
     | `mgmt_public_ip` | If true, the management address will have a public IP assigned to it. | `true` | 
     | `region` | The region to deploy the consumer resources. | `us-west1` |
     | `image_name` | The firewall image to deploy. | `vmseries-flex-bundle2-1126`|
-
+    | `mirroring_mode` | If true, configures the forwarding rule for packet mirroring. If false, configures it for in-band traffic. | `true` |
 
 > [!CAUTION]
 > It is recommended to set `mgmt_public_ip` to `false` in production environments.
@@ -280,7 +281,7 @@ In the `consumer` directory, use the terraform plan to create a consumer environ
     | `project_id` | The project ID of the consumer environment. | `null` |
     | `mgmt_allowed_ips` | A list of IPv4 addresses that can access the VMs on `TCP:80,22`. | `["0.0.0.0/0"]` |
     | `region` | The region to deploy the consumer resources. | `us-west1` |
-
+    | `create_gke` | Whether to create the GKE cluster. | `false` |
 
 4. Initialize and apply the terraform plan.
 
@@ -312,146 +313,134 @@ In the `consumer` directory, use the terraform plan to create a consumer environ
 > [!NOTE]
 > For the Security Lifecycle Assessment, we will use **mirror** mode of the NSI. We will not **block** any traffic, the purpose is to understand if there are any existing security issues or risks.
 
-Navigate to Network Services, and select the Load Balancer (`ui-nsi-panw-lb`) provisioned by the Terraform Template. Select "Edit" and proceed to the Frontend configuration. Choose "Add Frontend IP and port" and configure the Frontend settings as follows:
-
-* **Name:** `ui-nsi-panw-lb-forwarding-rule` (This serves as the rule's identifier)  
-* **IP Address:** Ephemeral (Custom) \- A Static IP address is required to align with the Firewall configuration.  
-* **Custom ephemeral IP address:** `10.0.1.3`  
-* **Port:** All  
-* **Packet Mirroring:** `Enable the load balancer for Packet Mirroring`
-
-Upon completion, select "Done," then select "Update" to activate the Forwarding Rule for the Load Balancer.  
-<img src="images/img1.png" alt="Picture1" width="500">
-
-Allow a brief period for the configuration to take effect, after which the Frontend Health Check status should indicate "100% health."Creation of NSI Deployment Group
-
-<img src="images/Picture2.png" alt="Picture2" width="500">
 
 ## Create NSI Deployment Group:
 
-Navigate to Network Security \-\> Deployment groups, and select "Create deployment group." Configure the settings as follows:
+1. Navigate to Network Security \-\> Deployment groups, and select "Create deployment group." Configure the settings as follows:
 
-* **Name:** `ui-nsi-demo-deployment-group` (Or a preferred, descriptive name)  
-* **Network:** `ui-nsi-data` (Pre-provisioned by the Terraform template; this is the location of the NGFW data network)  
-* **Purpose:** `NSI Out-of-Band` (Mirror modes)  
-  <img src="images/img2.png" alt="Picture3" width="500">
+    * **Name:** `ui-nsi-demo-deployment-group` (Or a preferred, descriptive name)  
+    * **Network:** `ui-nsi-data` (Pre-provisioned by the Terraform template; this is the location of the NGFW data network)  
+    * **Purpose:** `NSI Out-of-Band` (Mirror modes)  
+      <img src="images/img2.png" alt="Picture3" width="500">
 
 
-Select "Create Intercept deployment" and configure the settings:
+2. Select "Create Intercept deployment" and configure the settings:
 
-* **Name:** `ui-nsi-demo-deployment`  
-* **Region:** `us-west1`  
-* **Zone:** `us-west1-a`  
-* **Load balancer:** `ui-nsi-panw-lb`  
-* **Forwarding rule:** `ui-nis-panw-lb-forwarding-rule` (The rule created in the preceding step)
+    * **Name:** `ui-nsi-demo-deployment`  
+    * **Region:** `us-west1`  
+    * **Zone:** `us-west1-a`  
+    * **Load balancer:** `ui-nsi-panw-lb`  
+    * **Forwarding rule:** `[prefix]-panw-lb-rule` (The rule created by terraform)
 
-**Note:** The preceding steps may be replicated to create multiple intercept deployments for individual zones, should the protection of resources across various zones be required. For the purpose of this demonstration, interception is enabled exclusively for resources within the `us-west1-a` zone.
+    **Note:** The preceding steps may be replicated to create multiple intercept deployments for individual zones, should the protection of resources across various zones be required. For the purpose of this demonstration, interception is enabled exclusively for resources within the `us-west1-a` zone.
 
-<img src="images/Picture4.png" alt="Picture4" width="500">
+    <img src="images/Picture4.png" alt="Picture4" width="500">
 
-Select "Create" to proceed.
+3. Select "Create" to proceed.
 
-After a short waiting period, the intercept deployment's status should transition to "Active." This concludes the configuration within the Producer project. The process now continues with the Consumer project, where the protected resources reside.On the Consumer ProjectCreation of Intercept Endpoint & Endpoint Group
+    After a short waiting period, the intercept deployment's status should transition to "Active." This concludes the configuration within the Producer project. The process now continues with the Consumer project, where the protected resources reside.On the Consumer ProjectCreation of Intercept Endpoint & Endpoint Group
 
-<img src="images/img3.png" alt="Picture5" width="500">
+    <img src="images/img3.png" alt="Picture5" width="500">
 
 # On the Consumer project
 
 ## Create Intercept Endpoint & Endpoint Group
 
-Navigate to Network Security \-\> Endpoint groups, and select "Create endpoint group." Configure the settings as follows:
+1. Navigate to Network Security \-\> Endpoint groups, and select "Create endpoint group." Configure the settings as follows:
 
-* **Name:** `ui-nsi-demo-epgr`  
-* **Purpose:** NSI Out-of-Band (For mirroring)
+    * **Name:** `ui-nsi-demo-epgr`  
+    * **Purpose:** NSI Out-of-Band (For mirroring)
 
-For the **Deployment group**, select **Manual Entry**, and input the following information:
+2. For the **Deployment group**, select **Manual Entry**, and input the following information:
 
-* **Project ID:** `<Your Producer project ID>`  
-* **Deployment group name:** `ui-nsi-demo-deployment-group` (The deployment group name created previously in the producer project)
+    * **Project ID:** `<Your Producer project ID>`  
+    * **Deployment group name:** `ui-nsi-demo-deployment-group` (The deployment group name created previously in the producer project)
 
-<img src="images/img4.png" alt="Picture5" width="500">
+    <img src="images/img4.png" alt="Picture5" width="500">
 
-Select "Continue." In the "Associations" section, select "Add endpoint group association." Configure the settings as follows:
+3. Select "Continue." In the "Associations" section, select "Add endpoint group association." Configure the settings as follows:
 
-* **Project:** `<the name of the consumer project>` (Ensure that the Compute Engine API and Network Security API are enabled)  
-* **Network:** `ui-nsi-consumer-vpc` (The VPC containing the resources to be protected; this VPC was pre-created by the Terraform template)
+    * **Project:** `<the name of the consumer project>` (Ensure that the Compute Engine API and Network Security API are enabled)  
+    * **Network:** `ui-nsi-consumer-vpc` (The VPC containing the resources to be protected; this VPC was pre-created by the Terraform template)
 
-Select "Done" upon completion.
+4. Select "Done" upon completion.
 
-<img src="images/Picture6.png" alt="Picture6" width="500">
+    <img src="images/Picture6.png" alt="Picture6" width="500">
 
-Select "Create" to provision the endpoint group.
+5. Select "Create" to provision the endpoint group.
 
-<img src="images/Picture7.png" alt="Picture7" width="500">
+    <img src="images/Picture7.png" alt="Picture7" width="500">
 
-Allow a brief period for the configuration to take effect, and the endpoint group's status should indicate "Active."Creation of Security Profile and Security Profile Group
+6. Allow a brief period for the configuration to take effect, and the endpoint group's status should indicate "Active."Creation of Security Profile and Security Profile Group
 
-<img src="images/Picture8.png" alt="Picture8" width="800">
+    <img src="images/Picture8.png" alt="Picture8" width="800">
 
 ## Create the Security Profile and Security Profile Group
 
 **Note:** Completion of the following steps requires the Org-level permissions outlined at the beginning of the documentation.
 
-Navigate to Networks Security \-\> Common components \-\> Security profiles, and select "Create Security profile." Configure the settings as follows:
+1. Navigate to Networks Security \-\> Common components \-\> Security profiles, and select "Create Security profile." Configure the settings as follows:
 
-* **Name:** `ui-nsi-demo-profile`  
-* **Purpose:** NSI Out-of-Band  
-* **Traffic directed to:**  
-  * **Project:** `<Consumer project ID>`  
-  * **Endpoint group:** `ui-nsi-demo-epg` (The endpoint group configured previously in the consumer project)
+    * **Name:** `ui-nsi-demo-profile`  
+    * **Purpose:** NSI Out-of-Band  
+    * **Traffic directed to:**  
+      * **Project:** `<Consumer project ID>`  
+      * **Endpoint group:** `ui-nsi-demo-epg` (The endpoint group configured previously in the consumer project)
 
-Select "Create."
+2. Select "Create."
 
-<img src="images/img5.png" alt="Picture8" width="500">
+    <img src="images/img5.png" alt="Picture8" width="500">
 
-Select the "Security profile groups" tab, and select "Create profile group."
+3. Select the "Security profile groups" tab, and select "Create profile group."
 
-<img src="images/Picture9.png" alt="Picture9" width="500">
+    <img src="images/Picture9.png" alt="Picture9" width="500">
 
-Configure the settings as follows:
+4. Configure the settings as follows:
 
-* **Name:** `ui-nsi-demo-profile-group`  
-* **Purpose:** NIS Out-of-Band  
-* **Custom mirroring profile:** `ui-nsi-demo-profile` (The security profile created in the preceding step)
+    * **Name:** `ui-nsi-demo-profile-group`  
+    * **Purpose:** NIS Out-of-Band  
+    * **Custom mirroring profile:** `ui-nsi-demo-profile` (The security profile created in the preceding step)
 
-Select "Create."  
-<img src="images/img6.png" alt="Picture8" width="500">
+5. Select "Create."  
+    <img src="images/img6.png" alt="Picture8" width="500">
 
 ## Create Firewall Rules
 
-Switch to the **Consumer project**, navigate to Cloud NGFW \-\> Firewall policies, and select "Create firewall policy." Configure the settings as follows:
+1. Switch to the **Consumer project**, navigate to Cloud NGFW \-\> Firewall policies, and select "Create firewall policy." Configure the settings as follows:
 
-* **Policy Name:** `ui-nsi-demo-consumer-policy`  
-* **Policy Type:** VPC policy  
-* **Deployment scope:** Global
+    * **Policy Name:** `ui-nsi-demo-consumer-policy`  
+    * **Policy Type:** VPC policy  
+    * **Deployment scope:** Global
 
-Select "Continue."
+2. Select "Continue."
 
-In the **Add rules** section, we don't need to configure that, as we are doing mirroring traffic not intercept, just click "Continue"
+    * In the **Add rules** section, we don't need to configure that, as we are doing mirroring traffic not intercept, just click "Continue"
 
-In the **Add mirroring rules** Select "Create mirroring rule." (Two mirroring rules are required: one for egress to destination `0.0.0.0/0` and one for ingress from source `0.0.0.0/0`, with the action set to apply the security profile group created for NSI Out-of-Band.)
+    * In the **Add mirroring rules** Select "Create mirroring rule." (Two mirroring rules are required: one for egress to destination `0.0.0.0/0` and one for ingress from source `0.0.0.0/0`, with the action set to apply the security profile group created for NSI Out-of-Band.)
 
-* **Ingress rule:**  
-  * **Priority:** 10  
-  * **Direction of traffic:** Ingress  
-  * **Action on match:** Mirror  
-    * **Security profile group:** `ui-nsi-demo-profile-group`  
-  * **Source filters:** IPv4: `0.0.0.0/0`  
-  * All other settings should remain at their default values.  
-* **Egress rule:**  
-  * **Priority:** 11  
-  * **Direction of traffic:** Egress  
-  * **Action on match:** Mirror  
-    * **Security profile group:** `ui-nsi-demo-profile-group`  
-  * **Destination filters:** IPv4: `0.0.0.0/0`  
-  * All other settings should remain at their default values.
+      * **Ingress rule:**  
+        * **Priority:** 10  
+        * **Direction of traffic:** Ingress  
+        * **Action on match:** Mirror  
+          * **Security profile group:** `ui-nsi-demo-profile-group`  
+        * **Source filters:** IPv4: `0.0.0.0/0`  
+        * All other settings should remain at their default values.  
+      * **Egress rule:**  
+        * **Priority:** 11  
+        * **Direction of traffic:** Egress  
+        * **Action on match:** Mirror  
+          * **Security profile group:** `ui-nsi-demo-profile-group`  
+        * **Destination filters:** IPv4: `0.0.0.0/0`  
+        * All other settings should remain at their default values.
 
 
 
-In the **Associate policy with networks** section, select "Associate." Select the `ui-nsi-consumer-vpc` and select "Associate."  
-<img src="images/Picture11.png" alt="Picture11" width="500">  
-Select "Create."
+3. In the **Associate policy with networks** section, select "Associate." Select the `ui-nsi-consumer-vpc` and select "Associate."  
+    <img src="images/Picture11.png" alt="Picture11" width="500">  
+</br>
+4. Select "Create."
 
+---
 
 # Security Lifecycle Report Generation
 
@@ -486,7 +475,7 @@ Select "Create."
 
     <img src="images/img7.png" alt="Picture12" width="1000">
 
-  * ***Your can generate longer period of data (if you need more than 7 days logs) from the VM-Series using CLI:***
+  * ***(Optional)Your can generate longer period of data (if you need more than 7 days logs) from the VM-Series using CLI:***
 
     ```
     scp export stats-dump start-time equal <YYYY/MM/DD@HH:MM:SS> end-time equal <YYYY/MM/DD@HH:MM:SS> to <username>@<scp-server-ip>:<file-path>
@@ -495,7 +484,7 @@ Select "Create."
 ## Generate the SLR (Security Lifecycle Report) 
 
 *   Access the CSP (Customer support portal) at URL: https://support.paloaltonetworks.com/Support/Index
-
+    (if you don't have an existing account, register at [Link](https://support.paloaltonetworks.com/Home/Register)).
 *   Navigate to **Resources** -> **Security Lifecycle Review**
 
     * ***Input Account Information:***
@@ -562,7 +551,7 @@ Locate the Network firewall policy created by name.
 
     ```
     cd
-    cd google-cloud-nsi-tutorial/consumer
+    cd google-cloud-nsi-security-lifecycle/consumer
     terraform destroy
     ```
 
@@ -584,7 +573,7 @@ Locate the Network firewall policy created by name.
 
     ```
     cd
-    cd google-cloud-nsi-tutorial/producer
+    cd google-cloud-nsi-security-lifecycle/producer
     terraform destroy
     ```
 
