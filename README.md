@@ -308,7 +308,6 @@ In the `consumer` directory, use the terraform plan to create a consumer environ
 
 # On the Producer Project
 
-## Creation of Load Balancer Forwarding Rule
 
 > [!NOTE]
 > For the Security Lifecycle Assessment, we will use **mirror** mode of the NSI. We will not **block** any traffic, the purpose is to understand if there are any existing security issues or risks.
