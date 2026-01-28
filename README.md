@@ -43,50 +43,6 @@ The producer creates firewalls which serve as the backend service for an interna
 | [Instance Group](https://cloud.google.com/compute/docs/instance-groups) | A managed or unmanaged instance group that contains the firewalls which enable horizontal scaling. |
 
 
-#### Zone Affinity Considerations
-
-The internal load balancer lacks zone-based affinity support. Therefore, consider the following architectures for your firewall deployment:
-
-* **Zone-Based**: Ensures traffic is inspected by a firewall in the same zone as the consumer's source zone.
-* **Cross-Zone**: Allows traffic to be inspected by any firewall within the same region as the traffic's source.
-
-<table>
-  <tr>
-    <!-- Title cell with left alignment -->
-    <th colspan="2" align="left">Zone-Based Deployment</th>
-  </tr>
-  <tr>
-    <td width="35%"><img src="images/diagram_zone.png" width="100%"></td>
-    <td width="65%">
-      <ol>
-        <li>Deploy the firewalls to a zone instance group corresponding to the source zone of the consumer.</li>
-        <li>Add the instance group to a backend service.</li>
-        <li>Create a forwarding rule targeting the backend service.</li>
-        <li>Link the forwarding rule to an intercept/mirroring deployment that matches the zone you are inspecting.</li>
-        <li>Add the deployment to a deployment group.</li>
-        <li><b>Repeat steps 1-5</b> for each zone requiring inspection.</li>
-      </ol>
-    </td>
-  </tr>
-  <tr>
-    <!-- Title cell with left alignment -->
-    <th colspan="2" align="left">Cross-Zone Deployment</th>
-  </tr>
-  <tr>
-    <td width="35%"><img src="images/diagram_region.png" width="100%"></td>
-    <td width="65%">
-      <ol>
-        <li>Deploy the firewalls to a regional instance group matching the source region of the consumer.</li>
-        <li>Add the instance group to a backend service.</li>
-        <li>Create a forwarding rule targeting the backend service.</li>
-        <li>Link the forwarding rule to an intercept/mirroring deployment matching the zone you wish to inspect.</li>
-        <li>Add the deployment to the deployment group.</li>
-        <li><b>Repeat steps 3-5</b> for each zone requiring inspection.</li>
-      </ol>
-    </td>
-  </tr>
-</table>
-
 <br>
 
 ### Consumer Components
@@ -482,9 +438,14 @@ In the `consumer` directory, use the terraform plan to create a consumer environ
 
 ## Generate the SLR (Security Lifecycle Report) 
 
-*   Access the CSP (Customer support portal) at URL: https://support.paloaltonetworks.com/Support/Index
-    (if you don't have an existing account, register at [Link](https://support.paloaltonetworks.com/Home/Register)).
-*   Navigate to **Resources** -> **Security Lifecycle Review**
+*   If you don't have an existing account, register at [Link](https://support.paloaltonetworks.com/Home/Register).
+    * You would need to register the VM Series NGFW to the new account creation
+      <img src="images/device_reg.png" alt="Picture12" width="500">
+    * You can get the CpuId, Uuid, Serieal Number in the UI console of the NGFW (as previous step)
+      <img src="images/fw.png" alt="Picture12" width="500">
+
+*   Access the CSP (Customer support portal) at URL: https://support.paloaltonetworks.com/Support/Index     
+    After login with your Navigate to **Resources** -> **Security Lifecycle Review**
 
     * ***Input Account Information:***
 
