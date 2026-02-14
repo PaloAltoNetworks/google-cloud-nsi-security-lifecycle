@@ -139,10 +139,17 @@ In the `producer` directory, use the terraform plan to create the producer's VPC
 
 > [!CAUTION]
 > It is required to make your cloudshell git support large file download, run below command to install git lfs before you start to clone the source code.
-  
-    
+
     sudo apt install git-lfs
-    
+
+And ensure you enabled the necessary API services in your Producer project. Run below commands before you start the terraform build.
+
+    gcloud services enable \
+    cloudresourcemanager.googleapis.com \
+    compute.googleapis.com \
+    iam.googleapis.com \
+    networksecurity.googleapis.com
+
 
 1. In [Cloud Shell](https://shell.cloud.google.com), clone the repository change to the `producer` directory. 
 
@@ -216,6 +223,16 @@ In the `consumer` directory, use the terraform plan to create a consumer environ
 > [!NOTE]
 > If you already have an existing consumer environment, skip to [Create Intercept Endpoint Group](#create-intercept-endpoint--endpoint-group).
 
+
+And ensure you enabled the necessary API services in your Comsumer project. Run below commands before you start the terraform build.
+
+    gcloud services enable \
+    cloudresourcemanager.googleapis.com \
+    compute.googleapis.com \
+    iam.googleapis.com \
+    networksecurity.googleapis.com \
+    secretmanager.googleapis.com
+
 1. In Cloud Shell, change to the `consumer` directory.
 
     ```
@@ -273,19 +290,19 @@ In the `consumer` directory, use the terraform plan to create a consumer environ
 
 1. Navigate to Network Security \-\> Deployment groups, and select "Create deployment group." Configure the settings as follows:
 
-    * **Name:** `ui-nsi-demo-deployment-group` (Or a preferred, descriptive name)  
-    * **Network:** `ui-nsi-data` (Pre-provisioned by the Terraform template; this is the location of the NGFW data network)  
+    * **Name:** `nsi-demo-deployment-group` (Or a preferred, descriptive name)  
+    * **Network:** `nsi-data` (Pre-provisioned by the Terraform template; this is the location of the NGFW data network)  
     * **Purpose:** `NSI Out-of-Band` (Mirror modes)  
       <img src="images/img2.png" alt="Picture3" width="500">
 
 
 2. Select "Create Intercept deployment" and configure the settings:
 
-    * **Name:** `ui-nsi-demo-deployment`  
+    * **Name:** `nsi-demo-deployment`  
     * **Region:** `us-west1`  
     * **Zone:** `us-west1-a`  
-    * **Load balancer:** `ui-nsi-panw-lb`  
-    * **Forwarding rule:** `[prefix]-panw-lb-rule` (The rule created by terraform)
+    * **Load balancer:** `nsi-panw-lb`  
+    * **Forwarding rule:** `[prefix]-panw-lb-rule` (The rule created by terraform, it should be auto-selected after you selected the load balancer)
 
     **Note:** The preceding steps may be replicated to create multiple intercept deployments for individual zones, should the protection of resources across various zones be required. For the purpose of this demonstration, interception is enabled exclusively for resources within the `us-west1-a` zone.
 
@@ -303,20 +320,20 @@ In the `consumer` directory, use the terraform plan to create a consumer environ
 
 1. Navigate to Network Security \-\> Endpoint groups, and select "Create endpoint group." Configure the settings as follows:
 
-    * **Name:** `ui-nsi-demo-epgr`  
+    * **Name:** `nsi-demo-epg`  
     * **Purpose:** NSI Out-of-Band (For mirroring)
 
 2. For the **Deployment group**, select **Manual Entry**, and input the following information:
 
     * **Project ID:** `<Your Producer project ID>`  
-    * **Deployment group name:** `ui-nsi-demo-deployment-group` (The deployment group name created previously in the producer project)
+    * **Deployment group name:** `nsi-demo-deployment-group` (The deployment group name created previously in the producer project)
 
     <img src="images/img4.png" alt="Picture5" width="500">
 
 3. Select "Continue." In the "Associations" section, select "Add endpoint group association." Configure the settings as follows:
 
     * **Project:** `<the name of the consumer project>` (Ensure that the Compute Engine API and Network Security API are enabled)  
-    * **Network:** `ui-nsi-consumer-vpc` (The VPC containing the resources to be protected; this VPC was pre-created by the Terraform template)
+    * **Network:** `nsi-consumer-vpc` (The VPC containing the resources to be protected; this VPC was pre-created by the Terraform template)
 
 4. Select "Done" upon completion.
 
@@ -336,11 +353,11 @@ In the `consumer` directory, use the terraform plan to create a consumer environ
 
 1. Navigate to Networks Security \-\> Common components \-\> Security profiles, and select "Create Security profile." Configure the settings as follows:
 
-    * **Name:** `ui-nsi-demo-profile`  
+    * **Name:** `nsi-demo-profile`  
     * **Purpose:** NSI Out-of-Band  
     * **Traffic directed to:**  
       * **Project:** `<Consumer project ID>`  
-      * **Endpoint group:** `ui-nsi-demo-epg` (The endpoint group configured previously in the consumer project)
+      * **Endpoint group:** `nsi-demo-epg` (The endpoint group configured previously in the consumer project)
 
 2. Select "Create."
 
@@ -352,9 +369,9 @@ In the `consumer` directory, use the terraform plan to create a consumer environ
 
 4. Configure the settings as follows:
 
-    * **Name:** `ui-nsi-demo-profile-group`  
+    * **Name:** `nsi-demo-profile-group`  
     * **Purpose:** NIS Out-of-Band  
-    * **Custom mirroring profile:** `ui-nsi-demo-profile` (The security profile created in the preceding step)
+    * **Custom mirroring profile:** `nsi-demo-profile` (The security profile created in the preceding step)
 
 5. Select "Create."  
     <img src="images/img6.png" alt="Picture8" width="500">
@@ -363,7 +380,7 @@ In the `consumer` directory, use the terraform plan to create a consumer environ
 
 1. Switch to the **Consumer project**, navigate to Cloud NGFW \-\> Firewall policies, and select "Create firewall policy." Configure the settings as follows:
 
-    * **Policy Name:** `ui-nsi-demo-consumer-policy`  
+    * **Policy Name:** `nsi-demo-consumer-policy`  
     * **Policy Type:** VPC policy  
     * **Deployment scope:** Global
 
@@ -377,20 +394,20 @@ In the `consumer` directory, use the terraform plan to create a consumer environ
         * **Priority:** 10  
         * **Direction of traffic:** Ingress  
         * **Action on match:** Mirror  
-          * **Security profile group:** `ui-nsi-demo-profile-group`  
+          * **Security profile group:** `nsi-demo-profile-group`  
         * **Source filters:** IPv4: `0.0.0.0/0`  
         * All other settings should remain at their default values.  
       * **Egress rule:**  
         * **Priority:** 11  
         * **Direction of traffic:** Egress  
         * **Action on match:** Mirror  
-          * **Security profile group:** `ui-nsi-demo-profile-group`  
+          * **Security profile group:** `nsi-demo-profile-group`  
         * **Destination filters:** IPv4: `0.0.0.0/0`  
         * All other settings should remain at their default values.
 
 
 
-3. In the **Associate policy with networks** section, select "Associate." Select the `ui-nsi-consumer-vpc` and select "Associate."  
+3. In the **Associate policy with networks** section, select "Associate." Select the `nsi-consumer-vpc` and select "Associate."  
     <img src="images/Picture11.png" alt="Picture11" width="500">  
 </br>
 4. Select "Create."
@@ -403,15 +420,17 @@ In the `consumer` directory, use the terraform plan to create a consumer environ
 
 * ***Get the firewall managment IP address***
 
-  * ***In Cloud Shell, set the firewall’s name and zone to environment variables (FW_NAME and FW_ZONE)***
+  * ***In Cloud Shell, get the firewall’s management external IP address***
 
     ```
-    read FW_NAME FW_ZONE <<< $(gcloud compute instances list \
-        --filter="tags.items=panw-tutorial" \
-        --format="value(name, zone)")
+    MGMT_ADDRESS=$(gcloud compute instances list \
+    --filter="tags.items=panw-tutorial" \
+    --format="value(networkInterfaces[0].accessConfigs[0].natIP)")
+
+    echo $MGMT_ADDRESS
     ```
 
-  * ***Access the web management console (If you have multiple FW instances in the instance group, you would need to repeat below steps to get all the logs for individual FW instance)***
+  * ***Access the web management console using your browser (If you have multiple FW instances in the instance group, you would need to repeat below steps to get all the logs for individual FW instance)***
 
     ```
     https://MGMT_ADDRESS
@@ -426,11 +445,11 @@ In the `consumer` directory, use the terraform plan to create a consumer environ
     </br>
 
 
-  * ***Download the NGFW Stats Dump file (only 7-days traffic available through the UI)***
+  * ***Download the NGFW Stats Dump file (only 7-days traffic available through the UI). Navigate to Device ->Support -> Stats Dump File, click "Generate Stats Dump File"***
 
     <img src="images/img7.png" alt="Picture12" width="1000">
 
-  * ***(Optional)Your can generate longer period of data (if you need more than 7 days logs) from the VM-Series using CLI:***
+  * ***(Optional)Your can generate longer period of data (if you need more than 7 days logs) from the VM-Series using CLI: (you would need to host a SCP server in your environemt to export the log)***
 
     ```
     scp export stats-dump start-time equal <YYYY/MM/DD@HH:MM:SS> end-time equal <YYYY/MM/DD@HH:MM:SS> to <username>@<scp-server-ip>:<file-path>
