@@ -223,6 +223,16 @@ In the `consumer` directory, use the terraform plan to create a consumer environ
 > [!NOTE]
 > If you already have an existing consumer environment, skip to [Create Intercept Endpoint Group](#create-intercept-endpoint--endpoint-group).
 
+Set to Consumer project
+
+```
+export CONSUMER_PROJECT="<your consumer project>" ### replace with consumer project
+```
+
+Switch to Consumer project
+```
+gcloud config set project $CONSUMER_PROJECT
+```
 
 And ensure you enabled the necessary API services in your Comsumer project. Run below commands before you start the terraform build.
 
@@ -296,13 +306,13 @@ And ensure you enabled the necessary API services in your Comsumer project. Run 
       <img src="images/img2.png" alt="Picture3" width="500">
 
 
-2. Select "Create Intercept deployment" and configure the settings:
+2. Select "Create mirroring deployment" and configure the settings:
 
     * **Name:** `nsi-demo-deployment`  
     * **Region:** `us-west1`  
     * **Zone:** `us-west1-a`  
     * **Load balancer:** `nsi-panw-lb`  
-    * **Forwarding rule:** `[prefix]-panw-lb-rule` (The rule created by terraform, it should be auto-selected after you selected the load balancer)
+    * **Forwarding rule:** `nsi-panw-lb-rule` (The rule created by terraform, it should be auto-selected after you selected the load balancer)
 
     **Note:** The preceding steps may be replicated to create multiple intercept deployments for individual zones, should the protection of resources across various zones be required. For the purpose of this demonstration, interception is enabled exclusively for resources within the `us-west1-a` zone.
 
@@ -333,7 +343,7 @@ And ensure you enabled the necessary API services in your Comsumer project. Run 
 3. Select "Continue." In the "Associations" section, select "Add endpoint group association." Configure the settings as follows:
 
     * **Project:** `<the name of the consumer project>` (Ensure that the Compute Engine API and Network Security API are enabled)  
-    * **Network:** `nsi-consumer-vpc` (The VPC containing the resources to be protected; this VPC was pre-created by the Terraform template)
+    * **Network:** `consumer-vpc` (The VPC containing the resources to be protected; this VPC was pre-created by the Terraform template)
 
 4. Select "Done" upon completion.
 
@@ -404,13 +414,13 @@ And ensure you enabled the necessary API services in your Comsumer project. Run 
           * **Security profile group:** `nsi-demo-profile-group`  
         * **Destination filters:** IPv4: `0.0.0.0/0`  
         * All other settings should remain at their default values.
+3. Click "Continue" **before moving onto Step 3 “Associate policy with networks”.**
 
 
-
-3. In the **Associate policy with networks** section, select "Associate." Select the `nsi-consumer-vpc` and select "Associate."  
+3. In the **Associate policy with networks** section, select "Associate." Select the `consumer-vpc` and select "Associate."  
     <img src="images/Picture11.png" alt="Picture11" width="500">  
 </br>
-4. Select "Create."
+4. Select "Create." 
 
 ---
 
@@ -418,8 +428,12 @@ And ensure you enabled the necessary API services in your Comsumer project. Run 
 
 ## Export logs from VM-Series Firewall endpoint
 
-* ***Get the firewall managment IP address***
-
+* ***Get the firewall management IP address***
+  * ***Switch to Producer Project***
+    ```
+    export PRODUCER_PROJECT="<your producer project>" ###replace with producer project
+    gcloud config set project $PRODUCER_PROJECT
+    ```
   * ***In Cloud Shell, get the firewall’s management external IP address***
 
     ```
@@ -454,6 +468,8 @@ And ensure you enabled the necessary API services in your Comsumer project. Run 
     ```
     scp export stats-dump start-time equal <YYYY/MM/DD@HH:MM:SS> end-time equal <YYYY/MM/DD@HH:MM:SS> to <username>@<scp-server-ip>:<file-path>
     ```
+> [!NOTE]
+> Please check back in 7 days (by default, or the x days you like using the scp to export more logs as described in the previous steps), and download the NGFW Stats Dump file. Because if you continue and generate the report now, it would have enough log amount at this moment.
 
 ## Generate the SLR (Security Lifecycle Report) 
 
