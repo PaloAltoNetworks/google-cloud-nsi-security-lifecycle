@@ -303,7 +303,7 @@ And ensure you enabled the necessary API services in your Comsumer project. Run 
     * **Name:** `nsi-demo-deployment-group` (Or a preferred, descriptive name)  
     * **Network:** `nsi-data` (Pre-provisioned by the Terraform template; this is the location of the NGFW data network)  
     * **Purpose:** `NSI Out-of-Band` (Mirror modes)  
-      <img src="images/img2.png" alt="Picture3" width="500">
+      <img src="images/up1.png" alt="Picture3" width="500">
 
 
 2. Select "Create mirroring deployment" and configure the settings:
@@ -316,13 +316,13 @@ And ensure you enabled the necessary API services in your Comsumer project. Run 
 
     **Note:** The preceding steps may be replicated to create multiple intercept deployments for individual zones, should the protection of resources across various zones be required. For the purpose of this demonstration, interception is enabled exclusively for resources within the `us-west1-a` zone.
 
-    <img src="images/Picture4.png" alt="Picture4" width="500">
+    <img src="images/up2.png" alt="Picture4" width="500">
 
 3. Select "Create" to proceed.
 
     After a short waiting period, the intercept deployment's status should transition to "Active." This concludes the configuration within the Producer project. The process now continues with the Consumer project, where the protected resources reside.On the Consumer ProjectCreation of Intercept Endpoint & Endpoint Group
 
-    <img src="images/img3.png" alt="Picture5" width="500">
+    <img src="images/up3.png" alt="Picture5" width="500">
 
 # On the Consumer project
 
@@ -338,7 +338,7 @@ And ensure you enabled the necessary API services in your Comsumer project. Run 
     * **Project ID:** `<Your Producer project ID>`  
     * **Deployment group name:** `nsi-demo-deployment-group` (The deployment group name created previously in the producer project)
 
-    <img src="images/img4.png" alt="Picture5" width="500">
+    <img src="images/up4.png" alt="Picture5" width="500">
 
 3. Select "Continue." In the "Associations" section, select "Add endpoint group association." Configure the settings as follows:
 
@@ -347,7 +347,7 @@ And ensure you enabled the necessary API services in your Comsumer project. Run 
 
 4. Select "Done" upon completion.
 
-    <img src="images/Picture6.png" alt="Picture6" width="500">
+    <img src="images/up5.png" alt="Picture6" width="500">
 
 5. Select "Create" to provision the endpoint group.
 
@@ -355,7 +355,7 @@ And ensure you enabled the necessary API services in your Comsumer project. Run 
 
 6. Allow a brief period for the configuration to take effect, and the endpoint group's status should indicate "Active."Creation of Security Profile and Security Profile Group
 
-    <img src="images/Picture8.png" alt="Picture8" width="800">
+    <img src="images/up6.png" alt="Picture8" width="800">
 
 ## Create the Security Profile and Security Profile Group
 
@@ -371,7 +371,7 @@ And ensure you enabled the necessary API services in your Comsumer project. Run 
 
 2. Select "Create."
 
-    <img src="images/img5.png" alt="Picture8" width="500">
+    <img src="images/up7.png" alt="Picture8" width="500">
 
 3. Select the "Security profile groups" tab, and select "Create profile group."
 
@@ -384,7 +384,7 @@ And ensure you enabled the necessary API services in your Comsumer project. Run 
     * **Custom mirroring profile:** `nsi-demo-profile` (The security profile created in the preceding step)
 
 5. Select "Create."  
-    <img src="images/img6.png" alt="Picture8" width="500">
+    <img src="images/up8.png" alt="Picture8" width="500">
 
 ## Create Firewall Rules
 
@@ -415,10 +415,10 @@ And ensure you enabled the necessary API services in your Comsumer project. Run 
         * **Destination filters:** IPv4: `0.0.0.0/0`  
         * All other settings should remain at their default values.
 3. Click "Continue" **before moving onto Step 3 “Associate policy with networks”.**
-
+    <img src="images/up9.png" alt="Picture8" width="500">
 
 3. In the **Associate policy with networks** section, select "Associate." Select the `consumer-vpc` and select "Associate."  
-    <img src="images/Picture11.png" alt="Picture11" width="500">  
+    <img src="images/up10.png" alt="Picture11" width="500">  
 </br>
 4. Select "Create." 
 
@@ -489,6 +489,10 @@ And ensure you enabled the necessary API services in your Comsumer project. Run 
     * ***Upload the stats dump file you downloaded in previous steps, support multi-files upload.***
 
       <img src="images/img9.png" alt="Picture12" width="500">
+
+    * ***You will see below screens when the report generating***
+      <img src="images/up11.png" alt="Picture12" width="500">
+      <img src="images/up12.png" alt="Picture12" width="500">
 
     * ***You can customize the report and download the report as PDF***
 
