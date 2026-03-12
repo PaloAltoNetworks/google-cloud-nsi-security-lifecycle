@@ -491,8 +491,8 @@ And ensure you enabled the necessary API services in your Comsumer project. Run 
       <img src="images/img9.png" alt="Picture12" width="500">
 
     * ***You will see below screens when the report generating***
-      <img src="images/up11.png" alt="Picture12" width="500">
-      <img src="images/up12.png" alt="Picture12" width="500">
+      <img src="images/up11.png" alt="Picture12" width="800">
+      <img src="images/up12.png" alt="Picture12" width="800">
 
     * ***You can customize the report and download the report as PDF***
 
