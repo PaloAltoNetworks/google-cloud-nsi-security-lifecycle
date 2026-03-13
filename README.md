@@ -428,7 +428,7 @@ And ensure you enabled the necessary API services in your Comsumer project. Run 
 
 ## Export logs from VM-Series Firewall endpoint
 
-* ***Get the firewall management IP address***
+* ***Setup the access to the firewall managment console***
   * ***Switch to Producer Project***
     ```
     export PRODUCER_PROJECT="<your producer project>" ###replace with producer project
@@ -462,10 +462,10 @@ And ensure you enabled the necessary API services in your Comsumer project. Run 
 
     ***Password:*** ```PaloAlto@123```
 
-    > [!NOTE]
-    > It is not a good practise to hardcode password in the NGFW instance, here is just for demo purpose and ease the steps of configuration. Highly recommand you set complex password during the intial setup of the firewall instance, and only restrict the access only allow from trusted IP addresses.
+> [!NOTE]
+> It is not a good practise to hardcode password in the NGFW instance, here is just for demo purpose and ease the steps of configuration. Highly recommand you set complex password during the intial setup of the firewall instance.
 
-    </br>
+</br>
 
 
   * ***Download the NGFW Stats Dump file (only 7-days traffic available through the UI). Navigate to Device ->Support -> Stats Dump File, click "Generate Stats Dump File"***
