@@ -170,7 +170,7 @@ And ensure you enabled the necessary API services in your Producer project. Run 
     | :---- | :---- | :---- |
     | `project_id` | The Google Cloud project ID of the producer environment. | `null` |
     | `mgmt_allow_ips` | A list of IPv4 addresses which have access to the firewall's mgmt interface. | `["0.0.0.0/0"]` |
-    | `mgmt_public_ip` | If true, the management address will have a public IP assigned to it. | `true` | 
+    | `mgmt_public_ip` | If true, the management address will have a public IP assigned to it. | `false` | 
     | `region` | The region to deploy the consumer resources. | `us-west1` |
     | `image_name` | The firewall image to deploy. | `vmseries-flex-bundle2-1126`|
     | `mirroring_mode` | If true, configures the forwarding rule for packet mirroring. If false, configures it for in-band traffic. | `true` |
@@ -434,20 +434,29 @@ And ensure you enabled the necessary API services in your Comsumer project. Run 
     export PRODUCER_PROJECT="<your producer project>" ###replace with producer project
     gcloud config set project $PRODUCER_PROJECT
     ```
-  * ***In Cloud Shell, get the firewall’s management external IP address***
+  * ***In Your local laptop, get the firewall’s management IP address and build the access to the firewall through the bastion host and IAP-Tunnel. Notice: The local proxy port is set to 8081 by default, if you want to use another port, you can update the script below in last line:***
+    > [!NOTE]
+    > Please run below scripts in you local laptop, DO NOT close the terminal until you finish access the Firewall. As the proxy tunnel will be closed if you close or stop the terminal
 
     ```
-    MGMT_ADDRESS=$(gcloud compute instances list \
-    --filter="tags.items=panw-tutorial" \
-    --format="value(networkInterfaces[0].accessConfigs[0].natIP)")
+    output=$(gcloud compute instances list --filter="name:bastion" --project=function-receiver --format="value(name,zone)")
+    export BASTION_NAME=$(echo "$output" | awk '{print $1}')
+    export BASTION_ZONE=$(echo "$output" | awk '{print $2}')
 
-    echo $MGMT_ADDRESS
+    export MGMT_ADDRESS=$(gcloud compute instances list \
+    --filter="name:gcs-temp-panw-firewall" \
+    --format="value(networkInterfaces[0].networkIP)")
+
+    gcloud compute ssh $BASTION_NAME \
+    --tunnel-through-iap \
+    --zone=$BASTION_ZONE \
+    -- -N -L 8081:$MGMT_ADDRESS:443
     ```
 
-  * ***Access the web management console using your browser (If you have multiple FW instances in the instance group, you would need to repeat below steps to get all the logs for individual FW instance)***
+  * ***Access the web management console using your browser, if you see a warning for invalid certificate, should be good, as in the demo environment it's using self-signed certifcate, just click "proceed" (If you have multiple FW instances in the instance group, you would need to repeat below steps to get all the logs for individual FW instance)***
 
     ```
-    https://MGMT_ADDRESS
+    https://127.0.0.1:8081
     ```
     ***Username:*** ```admin```
 

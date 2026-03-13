@@ -299,6 +299,31 @@ resource "google_compute_region_autoscaler" "main" {
 
 
 # -------------------------------------------------------------------------------------
+# Create Bastion Host
+# -------------------------------------------------------------------------------------
+
+resource "google_compute_instance" "bastion" {
+  name         = "${local.prefix}bastion"
+  machine_type = "e2-micro"
+  zone         = data.google_compute_zones.available.names[0]
+
+  boot_disk {
+    initialize_params {
+      image = "debian-cloud/debian-11"
+    }
+  }
+
+  network_interface {
+    subnetwork = google_compute_subnetwork.mgmt.id
+  }
+
+  service_account {
+    email  = google_service_account.main.email
+    scopes = ["cloud-platform"]
+  }
+}
+
+# -------------------------------------------------------------------------------------
 # Create custom monitoring dashboard for VM-Series utilization metrics.
 # -------------------------------------------------------------------------------------
 
