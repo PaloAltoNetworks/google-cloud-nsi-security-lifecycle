@@ -435,8 +435,8 @@ And ensure you enabled the necessary API services in your Comsumer project. Run 
     gcloud config set project $PRODUCER_PROJECT
     ```
   * ***In Your local laptop, get the firewall’s management IP address and build the access to the firewall through the bastion host and IAP-Tunnel. Notice: The local proxy port is set to 8081 by default, if you want to use another port, you can update the script below in last line:***
-    > [!NOTE]
-    > Please run below scripts in you local laptop, DO NOT close the terminal until you finish access the Firewall. As the proxy tunnel will be closed if you close or stop the terminal
+    >[!CAUTION]
+    > Please run the script below on your local laptop with the gcloud CLI installed. Ensure that the terminal remains open until you have completed accessing the firewall, as the proxy tunnel will terminate if the terminal session is closed.
 
     ```
     output=$(gcloud compute instances list --filter="name:bastion" --project=function-receiver --format="value(name,zone)")
