@@ -171,7 +171,7 @@ And ensure you enabled the necessary API services in your Producer project. Run 
     | `project_id` | The Google Cloud project ID of the producer environment. | `null` |
     | `mgmt_allow_ips` | A list of IPv4 addresses which have access to the firewall's mgmt interface. | `["0.0.0.0/0"]` |
     | `mgmt_public_ip` | If true, the management address will have a public IP assigned to it. | `false` | 
-    | `region` | The region to deploy the consumer resources. | `us-west1` |
+    | `region` | The region to deploy the producer resources. | `us-west1` |
     | `image_name` | The firewall image to deploy. | `vmseries-flex-bundle2-1126`|
     | `mirroring_mode` | If true, configures the forwarding rule for packet mirroring. If false, configures it for in-band traffic. | `true` |
 
