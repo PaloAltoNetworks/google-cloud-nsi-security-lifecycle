@@ -439,7 +439,7 @@ And ensure you enabled the necessary API services in your Comsumer project. Run 
 > Please run the script below on your local laptop with the gcloud CLI installed. Ensure that the terminal remains open until you have completed accessing the firewall, as the proxy tunnel will terminate if the terminal session is closed.
 
     ```
-    output=$(gcloud compute instances list --filter="name:bastion" --project=function-receiver --format="value(name,zone)")
+    output=$(gcloud compute instances list --filter="name:bastion" --project=$PRODUCER_PROJECT --format="value(name,zone)")
     export BASTION_NAME=$(echo "$output" | awk '{print $1}')
     export BASTION_ZONE=$(echo "$output" | awk '{print $2}')
 
