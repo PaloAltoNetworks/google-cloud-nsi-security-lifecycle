@@ -4,16 +4,16 @@
 
 project_id      = ""
 mgmt_allow_ips  = ["0.0.0.0/0"]
-mgmt_public_ip  = false  ### You need to make this to "true" if you sent create_bastion as false.
+mgmt_public_ip  = true  ### You need to set this to "true" if you set create_bastion as false.
 region          = "us-west1"
 image_name      = "vmseries-flex-bundle2-1126"
-create_bastion   = true   ### You can create a basion host for remote access the NGFW if you didn't assigned public ip address to the management interface of NGFW
+create_bastion   = false   ### You can create a basion host for remote access the NGFW if you set 'mgmt_public_ip  = false'
 
 # ------------------------------------------------
 # Optional
 # ------------------------------------------------
-subnet_cidr_mgmt = "10.0.0.0/28"
-subnet_cidr_data = "10.0.1.0/28"
+subnet_cidr_mgmt = "10.0.0.0/24"
+subnet_cidr_data = "10.0.1.0/24"
 prefix           = "clara"
 csp_authcodes    = ""
 csp_pin_id       = ""

@@ -51,27 +51,15 @@ locals {
 
 
 # -------------------------------------------------------------------------------------
-# Create management and dataplane VPCs, subnets, and firewall rules.
+# Create management and dataplane subnets and firewall rules in the existing VPCs.
 # -------------------------------------------------------------------------------------
-
-// Create management VPC
-resource "google_compute_network" "mgmt" {
-  name                    = "${local.prefix}mgmt"
-  auto_create_subnetworks = false
-}
-
-// Create dataplane VPC
-resource "google_compute_network" "data" {
-  name                    = "${local.prefix}data"
-  auto_create_subnetworks = false
-}
 
 // Create management subnet
 resource "google_compute_subnetwork" "mgmt" {
   name          = "${local.prefix}${var.region}-mgmt"
   ip_cidr_range = var.subnet_cidr_mgmt
   region        = var.region
-  network       = google_compute_network.mgmt.id
+  network       = var.mgmt_network_name
 }
 
 // Create dataplane subnet
@@ -79,32 +67,32 @@ resource "google_compute_subnetwork" "data" {
   name          = "${local.prefix}${var.region}-data"
   ip_cidr_range = var.subnet_cidr_data
   region        = var.region
-  network       = google_compute_network.data.id
+  network       = var.data_network_name
 }
 
 // Firewall rule to allow management access
-resource "google_compute_firewall" "mgmt" {
-  name          = "${local.prefix}mgmt"
-  network       = google_compute_network.mgmt.name
-  source_ranges = var.mgmt_allow_ips
+# resource "google_compute_firewall" "mgmt" {
+#   name          = "${local.prefix}mgmt"
+#   network       = var.mgmt_network_name
+#   source_ranges = var.mgmt_allow_ips
 
-  allow {
-    protocol = "tcp"
-    ports    = ["443", "22", "3978"]
-  }
-}
+#   allow {
+#     protocol = "tcp"
+#     ports    = ["443", "22", "3978"]
+#   }
+# }
 
-// Allow all traffic to firewall's dataplane VPC
-resource "google_compute_firewall" "data" {
-  name          = "${local.prefix}data"
-  network       = google_compute_network.data.name
-  source_ranges = ["0.0.0.0/0"]
+# // Allow all traffic to firewall's dataplane VPC
+# resource "google_compute_firewall" "data" {
+#   name          = "${local.prefix}data"
+#   network       = var.data_network_name
+#   source_ranges = ["0.0.0.0/0"]
 
-  allow {
-    protocol = "all"
-    ports    = []
-  }
-}
+#   allow {
+#     protocol = "all"
+#     ports    = []
+#   }
+# }
 
 # -------------------------------------------------------------------------------------
 #  Create Cloud NAT for management VPC.
@@ -112,14 +100,14 @@ resource "google_compute_firewall" "data" {
 
 // Create cloud router for cloud NAT.
 resource "google_compute_router" "main" {
-  name    = "${local.prefix}${var.region}mgmt-router"
-  network = google_compute_network.mgmt.id
+  name    = "${local.prefix}${var.region}-mgmt-router"
+  network = var.mgmt_network_name
   region  = var.region
 }
 
 // Create cloud NAT for outbound internet access.
 resource "google_compute_router_nat" "main" {
-  name                               = "${local.prefix}mgmt-nat"
+  name                               = "${local.prefix}${var.region}-mgmt-nat"
   router                             = google_compute_router.main.name
   region                             = var.region
   nat_ip_allocate_option             = "AUTO_ONLY"
@@ -133,7 +121,7 @@ resource "google_compute_router_nat" "main" {
 // Create health check
 
 resource "google_compute_region_health_check" "main" {
-  name = "${local.prefix}panw-hc"
+  name = "${local.prefix}${var.region}-panw-hc"
   https_health_check {
     port         = 443
     request_path = "/unauth/php/health.php"
@@ -143,9 +131,9 @@ resource "google_compute_region_health_check" "main" {
 // Create backend service.
 resource "google_compute_region_backend_service" "main" {
   provider      = google-beta
-  name          = "${local.prefix}panw-lb"
+  name          = "${local.prefix}${var.region}-panw-lb"
   protocol      = "UDP"
-  network       = google_compute_network.data.id
+  network       = var.data_network_name
   health_checks = [google_compute_region_health_check.main.self_link]
 
   backend {
@@ -177,7 +165,7 @@ resource "google_compute_forwarding_rule" "main" {
   backend_service        = google_compute_region_backend_service.main.id
   ip_address             = cidrhost(var.subnet_cidr_data, 200 + index(data.google_compute_zones.available.names, each.key))
   subnetwork             = google_compute_subnetwork.data.id
-  network                = google_compute_network.data.id
+  network                = var.data_network_name
   is_mirroring_collector = var.mirroring_mode ? true : false
 }
 
@@ -192,7 +180,7 @@ data "google_compute_zones" "available" {
 
 // Create service account for firewall
 resource "google_service_account" "main" {
-  account_id = "${local.prefix}panw-sa"
+  account_id = "${local.prefix}${var.region}-panw-sa"
 }
 
 // Add roles to service account
@@ -203,26 +191,9 @@ resource "google_project_iam_member" "main" {
   member   = "serviceAccount:${google_service_account.main.email}"
 }
 
-// Create bootstrap bucket download dynamic content to firewall
-module "bootstrap" {
-  source          = "PaloAltoNetworks/swfw-modules/google//modules/bootstrap"
-  version         = "~> 2.0"
-  location        = "US"
-  service_account = google_service_account.main.email
-
-  files = {
-    "bootstrap_files/init-cfg.txt"                       = "config/init-cfg.txt"
-    "bootstrap_files/authcodes"                          = "license/authcodes"
-    "bootstrap_files/panup-all-antivirus-5120-5639"      = "content/panup-all-antivirus-5120-5639"
-    "bootstrap_files/panupv2-all-contents-8952-9326"     = "content/panupv2-all-contents-8952-9326"
-    "bootstrap_files/panupv3-all-wildfire-959874-963830" = "content/panupv3-all-wildfire-959874-963830"
-    "bootstrap_files/bootstrap.xml"                      = "config/bootstrap.xml"
-  }
-}
-
 // Create instance template for the firewall
 resource "google_compute_instance_template" "main" {
-  name_prefix      = "${local.prefix}panw-template"
+  name_prefix      = "${local.prefix}${var.region}-panw-template"
   machine_type     = var.machine_type
   min_cpu_platform = "Intel Cascade Lake"
   tags             = ["panw-tutorial"]
@@ -237,7 +208,7 @@ resource "google_compute_instance_template" "main" {
     vm-series-auto-registration-pin-value = var.csp_pin_value
     authcodes                             = var.csp_authcodes
     dns-primary                           = "169.254.169.254"
-    vmseries-bootstrap-gce-storagebucket  = module.bootstrap.bucket_name
+    vmseries-bootstrap-gce-storagebucket  = var.bootstrap_bucket
     # ssh-keys                             = "${file(local.public_key_path)}"
   }
 
@@ -277,7 +248,6 @@ resource "google_compute_instance_template" "main" {
   }
 
   depends_on = [
-    module.bootstrap,
     google_compute_router_nat.main
   ]
 }
@@ -285,8 +255,8 @@ resource "google_compute_instance_template" "main" {
 
 // Create regional instance group
 resource "google_compute_region_instance_group_manager" "main" {
-  name                      = "${local.prefix}panw-mig"
-  base_instance_name        = "${local.prefix}panw-firewall"
+  name                      = "${local.prefix}${var.region}-panw-mig"
+  base_instance_name        = "${local.prefix}${var.region}-panw-firewall"
   distribution_policy_zones = data.google_compute_zones.available.names
 
   version {
@@ -297,7 +267,7 @@ resource "google_compute_region_instance_group_manager" "main" {
 
 // Configure autoscaling policy for instance group
 resource "google_compute_region_autoscaler" "main" {
-  name   = "${local.prefix}panw-autoscaler"
+  name   = "${local.prefix}${var.region}-panw-autoscaler"
   target = google_compute_region_instance_group_manager.main.id
 
   autoscaling_policy {
@@ -322,7 +292,7 @@ resource "google_compute_region_autoscaler" "main" {
 
 resource "google_compute_instance" "bastion" {
   count        = var.create_bastion ? 1 : 0
-  name         = "${local.prefix}bastion"
+  name         = "${local.prefix}${var.region}-bastion"
   machine_type = "e2-micro"
   zone         = data.google_compute_zones.available.names[0]
 
@@ -357,15 +327,6 @@ resource "google_compute_instance" "bastion" {
 #   }
 # }
 
-// Create intercept deployment group.
-resource "google_network_security_intercept_deployment_group" "main" {
-  provider                      = google-beta
-  count                         = var.mirroring_mode ? 0 : 1
-  intercept_deployment_group_id = "${local.prefix}panw-dg"
-  location                      = "global"
-  network                       = google_compute_network.data.id
-}
-
 // Create an intercept deployment for each zone within var.region
 resource "google_network_security_intercept_deployment" "main" {
   provider                   = google-beta
@@ -373,22 +334,13 @@ resource "google_network_security_intercept_deployment" "main" {
   intercept_deployment_id    = "panw-deployment-${each.key}"
   location                   = each.key
   forwarding_rule            = each.value.id
-  intercept_deployment_group = google_network_security_intercept_deployment_group.main[0].id
+  intercept_deployment_group = var.existing_intercept_deployment_group_id
 }
 
 
 # -------------------------------------------------------------------------------------
 #  If mirroring_mode = true, create mirroring deployment instead.
 # -------------------------------------------------------------------------------------
-
-// Create mirroring deployment group.
-resource "google_network_security_mirroring_deployment_group" "main" {
-  provider                      = google-beta
-  count                         = var.mirroring_mode ? 1 : 0
-  mirroring_deployment_group_id = "${local.prefix}panw-dg"
-  location                      = "global"
-  network                       = google_compute_network.data.id
-}
 
 // Create an mirroring deployment for each zone within var.region
 resource "google_network_security_mirroring_deployment" "main" {
@@ -397,5 +349,5 @@ resource "google_network_security_mirroring_deployment" "main" {
   mirroring_deployment_id    = "panw-deployment-${each.key}"
   location                   = each.key
   forwarding_rule            = each.value.id
-  mirroring_deployment_group = google_network_security_mirroring_deployment_group.main[0].id
+  mirroring_deployment_group = var.existing_mirroring_deployment_group_id
 }

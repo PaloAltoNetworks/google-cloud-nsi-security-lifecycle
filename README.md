@@ -170,9 +170,10 @@ And ensure you enabled the necessary API services in your Producer project. Run 
     | :---- | :---- | :---- |
     | `project_id` | The Google Cloud project ID of the producer environment. | `null` |
     | `mgmt_allow_ips` | A list of IPv4 addresses which have access to the firewall's mgmt interface. | `["0.0.0.0/0"]` |
-    | `mgmt_public_ip` | If true, the management address will have a public IP assigned to it. | `false` | 
+    | `mgmt_public_ip` | If true, the management address will have a public IP assigned to it. (Set to `true` if `create_bastion` is false). | `true` | 
     | `region` | The region to deploy the consumer resources. | `us-west1` |
     | `image_name` | The firewall image to deploy. | `vmseries-flex-bundle2-1126`|
+    | `create_bastion` | If true, creates a bastion host for remote access to the NGFW when `mgmt_public_ip` is false. | `false` |
     | `mirroring_mode` | If true, configures the forwarding rule for packet mirroring. If false, configures it for in-band traffic. | `true` |
 
 > [!CAUTION]
@@ -198,22 +199,20 @@ And ensure you enabled the necessary API services in your Producer project. Run 
 
     Enter `yes` to apply the plan.
 
-5. After the apply completes, terraform displays the following message:
+5. After the apply completes, terraform displays the following message, you would need these information for the consumer endpoint group deployment and multi-ngfw clusters to support multi-region VPC:
 
-    <pre>
-    export <b>PRODUCER_PROJECT</b>=<i>your-project-id</i>
-    export <b>DATA_VPC</b>=<i>nsi-data</i>
-    export <b>DATA_SUBNET</b>=<i>us-west1-data</i>
-    export <b>REGION</b>=<i>us-west1</i>
-    export <b>ZONE</b>=<i>us-west1-a</i>
-    export <b>BACKEND_SERVICE</b>=<i>https://www.googleapis.com/compute/v1/projects/your-project-id/regions/us-west1/backendServices/panw-nsi-lb</i></pre>
+    ``` 
+    BOOTSTRAP_BUCKET = "paloaltonetworks-firewall-bootstrap-<random_string>"
+    DEPLOYMENT_GROUP = "projects/<project_id>/locations/global/mirroringDeploymentGroups/clara-panw-dg"
+    PRODUCER_PROJECT = "function-receiver"
+    ```
 
 
 > [!IMPORTANT] 
 > The `init-cfg.txt` includes `plugin-op-commands=geneve-inspect:enable` bootstrap parameter, allowing firewalls to handle GENEVE encapsulated traffic forwarded via packet intercept or packet mirror. 
 > If this is not configured, packet intercept/mirror traffic will be dropped. 
 
-## Create Consumer Environment
+## (Optional) Create Consumer Environment
 
 > [!NOTE] 
 > This is not required if assessment customer existing environmenat, and this consumer environment is just for the demo purpose.
@@ -275,19 +274,7 @@ And ensure you enabled the necessary API services in your Comsumer project. Run 
 
     Enter `yes` to apply the plan.
 
-5. After the apply completes, terraform displays the following message:
-
-    <pre>
-    export <b>CONSUMER_PROJECT</b>=<i>your-project-id</i>
-    export <b>CONSUMER_VPC</b>=<i>consumer-vpc</i>
-    export <b>REGION</b>=<i>us-west1</i>
-    export <b>ZONE</b>=<i>us-west1-a</i>
-    export <b>CLIENT_VM</b>=<i>client-vm</i>
-    export <b>CLUSTER</b>=<i>cluster1</i>
-    export <b>ORG_ID</b>=<i>$(gcloud projects describe your-project-id --format=json | jq -r '.parent.id')</i></pre>
-
-<br>
-<br>
+5. After the apply completes, you can continue the rest steps.
 
 # On the Producer Project
 
@@ -457,7 +444,7 @@ And ensure you enabled the necessary API services in your Comsumer project. Run 
     ```
     https://127.0.0.1:8081
     ```
-    ***If you are have assigned public IP address to the Management Interface of NGFW, direct access the public IP as below:***
+    ***If you are have assigned public IP address to the Management Interface of NGFW (mgmt_public_ip = true), direct access the public IP as below:***
     ```
     https://<Public_IP_MGMT_Interface>
     ```
