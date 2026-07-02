@@ -105,15 +105,21 @@ variable "metadata" {
 
 
 variable "vmseries_metrics" {
-    default = {
+  default = {
     "custom.googleapis.com/VMSeries/panSessionActive" = {
-      target = 100
+      target = 10000
     }
   }
 }
 
 variable "mirroring_mode" {
   description = "If true, configures the forwarding rule for packet mirroring. If false, configures it for in-band traffic."
+  type        = bool
+  default     = true
+}
+
+variable "create_bastion" {
+  description = "If true, the bastion host is created."
   type        = bool
   default     = true
 }

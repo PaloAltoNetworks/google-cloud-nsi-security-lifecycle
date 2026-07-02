@@ -7,26 +7,32 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = ">=4.64, < 6.18"
+      version = ">= 7.38.0"
     }
     google-beta = {
       source  = "hashicorp/google-beta"
-      version = ">=4.64, < 6.18"
+      version = ">= 7.38.0"
     }
   }
 }
 
 provider "google" {
-  project = var.project_id
-  region  = var.region
+  project               = var.project_id
+  region                = var.region
+  billing_project       = var.project_id
+  user_project_override = true
+
   default_labels = {
     panw = "true"
   }
 }
 
 provider "google-beta" {
-  project = var.project_id
-  region  = var.region
+  project               = var.project_id
+  region                = var.region
+  billing_project       = var.project_id
+  user_project_override = true
+
   default_labels = {
     panw = "true"
   }
@@ -38,8 +44,8 @@ provider "google-beta" {
 # -------------------------------------------------------------------------------------
 
 locals {
-  prefix = var.prefix != null && var.prefix != "" ? "${var.prefix}-" : ""
-  public_key_path = "${path.module}/bootstrap_files/gcp_key.pub" 
+  prefix                      = var.prefix != null && var.prefix != "" ? "${var.prefix}-" : ""
+  public_key_path             = "${path.module}/bootstrap_files/gcp_key.pub"
   create_monitoring_dashboard = true
 }
 
@@ -124,8 +130,8 @@ resource "google_compute_router_nat" "main" {
 # -------------------------------------------------------------------------------------
 #  Create internal load balancer.
 # -------------------------------------------------------------------------------------
-
 // Create health check
+
 resource "google_compute_region_health_check" "main" {
   name = "${local.prefix}panw-hc"
   https_health_check {
@@ -136,6 +142,7 @@ resource "google_compute_region_health_check" "main" {
 
 // Create backend service.
 resource "google_compute_region_backend_service" "main" {
+  provider      = google-beta
   name          = "${local.prefix}panw-lb"
   protocol      = "UDP"
   network       = google_compute_network.data.id
@@ -145,23 +152,34 @@ resource "google_compute_region_backend_service" "main" {
     group          = google_compute_region_instance_group_manager.main.instance_group
     balancing_mode = "CONNECTION"
   }
+
+  network_pass_through_lb_traffic_policy {
+    zonal_affinity {
+      spillover       = "ZONAL_AFFINITY_SPILL_CROSS_ZONE"
+      spillover_ratio = 0.8
+    }
+  }
 }
 
+# -------------------------------------------------------------------------------------
+#  Create forwarding rules
+# -------------------------------------------------------------------------------------
 
+// Create a forwarding rule for each zone within var.region 
 resource "google_compute_forwarding_rule" "main" {
-  name                   = "${local.prefix}panw-lb-rule"
+  for_each               = toset(data.google_compute_zones.available.names)
+  name                   = "${local.prefix}panw-lb-rule-${each.key}"
+  project                = var.project_id
   region                 = var.region
   load_balancing_scheme  = "INTERNAL"
-  backend_service        = google_compute_region_backend_service.main.id
-  ip_address             = cidrhost(var.subnet_cidr_data, 4)
-  all_ports              = false
-  ports                  = ["6081"]
   ip_protocol            = "UDP"
-  network                = google_compute_network.data.id
+  ports                  = ["6081"]
+  backend_service        = google_compute_region_backend_service.main.id
+  ip_address             = cidrhost(var.subnet_cidr_data, 11 + index(data.google_compute_zones.available.names, each.key))
   subnetwork             = google_compute_subnetwork.data.id
-  is_mirroring_collector = var.mirroring_mode
+  network                = google_compute_network.data.id
+  is_mirroring_collector = var.mirroring_mode ? true : false
 }
-
 
 # -------------------------------------------------------------------------------------
 #  Create firewall service account, instance template, MIG, and autoscaler.
@@ -198,7 +216,7 @@ module "bootstrap" {
     "bootstrap_files/panup-all-antivirus-5120-5639"      = "content/panup-all-antivirus-5120-5639"
     "bootstrap_files/panupv2-all-contents-8952-9326"     = "content/panupv2-all-contents-8952-9326"
     "bootstrap_files/panupv3-all-wildfire-959874-963830" = "content/panupv3-all-wildfire-959874-963830"
-    "bootstrap_files/bootstrap.xml" = "config/bootstrap.xml"
+    "bootstrap_files/bootstrap.xml"                      = "config/bootstrap.xml"
   }
 }
 
@@ -303,6 +321,7 @@ resource "google_compute_region_autoscaler" "main" {
 # -------------------------------------------------------------------------------------
 
 resource "google_compute_instance" "bastion" {
+  count        = var.create_bastion ? 1 : 0
   name         = "${local.prefix}bastion"
   machine_type = "e2-micro"
   zone         = data.google_compute_zones.available.names[0]
@@ -327,13 +346,56 @@ resource "google_compute_instance" "bastion" {
 # Create custom monitoring dashboard for VM-Series utilization metrics.
 # -------------------------------------------------------------------------------------
 
-resource "google_monitoring_dashboard" "dashboard" {
-  count          = (local.create_monitoring_dashboard ? 1 : 0)
-  dashboard_json = templatefile("${path.root}/bootstrap_files/dashboard.json.tpl", { dashboard_name = "VM-Series Metrics" })
+# resource "google_monitoring_dashboard" "dashboard" {
+#   count          = (local.create_monitoring_dashboard ? 1 : 0)
+#   dashboard_json = templatefile("${path.root}/bootstrap_files/dashboard.json.tpl", { dashboard_name = "VM-Series Metrics" })
 
-  lifecycle {
-    ignore_changes = [
-      dashboard_json
-    ]
-  }
+#   lifecycle {
+#     ignore_changes = [
+#       dashboard_json
+#     ]
+#   }
+# }
+
+// Create intercept deployment group.
+resource "google_network_security_intercept_deployment_group" "main" {
+  provider                      = google-beta
+  count                         = var.mirroring_mode ? 0 : 1
+  intercept_deployment_group_id = "${local.prefix}panw-dg"
+  location                      = "global"
+  network                       = google_compute_network.data.id
+}
+
+// Create an intercept deployment for each zone within var.region
+resource "google_network_security_intercept_deployment" "main" {
+  provider                   = google-beta
+  for_each                   = var.mirroring_mode ? {} : google_compute_forwarding_rule.main
+  intercept_deployment_id    = "panw-deployment-${each.key}"
+  location                   = each.key
+  forwarding_rule            = each.value.id
+  intercept_deployment_group = google_network_security_intercept_deployment_group.main[0].id
+}
+
+
+# -------------------------------------------------------------------------------------
+#  If mirroring_mode = true, create mirroring deployment instead.
+# -------------------------------------------------------------------------------------
+
+// Create mirroring deployment group.
+resource "google_network_security_mirroring_deployment_group" "main" {
+  provider                      = google-beta
+  count                         = var.mirroring_mode ? 1 : 0
+  mirroring_deployment_group_id = "${local.prefix}panw-dg"
+  location                      = "global"
+  network                       = google_compute_network.data.id
+}
+
+// Create an mirroring deployment for each zone within var.region
+resource "google_network_security_mirroring_deployment" "main" {
+  provider                   = google-beta
+  for_each                   = var.mirroring_mode ? google_compute_forwarding_rule.main : {}
+  mirroring_deployment_id    = "panw-deployment-${each.key}"
+  location                   = each.key
+  forwarding_rule            = each.value.id
+  mirroring_deployment_group = google_network_security_mirroring_deployment_group.main[0].id
 }

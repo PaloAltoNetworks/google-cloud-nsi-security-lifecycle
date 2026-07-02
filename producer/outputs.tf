@@ -1,12 +1,9 @@
-output "ENVIRONMENT_VARIABLES" {
-  value = <<EOT
+output "PRODUCER_PROJECT" {
+  value = var.project_id
+}
 
-export PRODUCER_PROJECT=${var.project_id}
-export DATA_VPC=${google_compute_network.data.name}
-export DATA_SUBNET=${google_compute_subnetwork.data.name}
-export REGION=${var.region}
-export ZONE=${data.google_compute_zones.available.names[0]}
-export BACKEND_SERVICE=${google_compute_region_backend_service.main.self_link}
-EOT
 
+output "DEPLOYMENT_GROUP" {
+  description = "The ID of the producer deployment group (either Intercept or Mirroring)."
+  value       = var.mirroring_mode ? google_network_security_mirroring_deployment_group.main[0].id : google_network_security_intercept_deployment_group.main[0].id
 }

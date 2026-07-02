@@ -333,12 +333,10 @@ And ensure you enabled the necessary API services in your Comsumer project. Run 
     * **Name:** `nsi-demo-epg`  
     * **Purpose:** NSI Out-of-Band (For mirroring)
 
-2. For the **Deployment group**, select **Manual Entry**, and input the following information:
+2. For the **Deployment group**, click **Select Project**, and Select the Producer Project, and find the Deployment Group created previously by Terraform
 
-    * **Project ID:** `<Your Producer project ID>`  
-    * **Deployment group name:** `nsi-demo-deployment-group` (The deployment group name created previously in the producer project)
 
-    <img src="images/up4.png" alt="Picture5" width="500">
+    <img src="images/ups4.png" alt="Picture5" width="500">
 
 3. Select "Continue." In the "Associations" section, select "Add endpoint group association." Configure the settings as follows:
 
@@ -361,7 +359,7 @@ And ensure you enabled the necessary API services in your Comsumer project. Run 
 
 **Note:** Completion of the following steps requires the Org-level permissions outlined at the beginning of the documentation.
 
-1. Navigate to Networks Security \-\> Common components \-\> Security profiles, and select "Create Security profile." Configure the settings as follows:
+1. Navigate to Networks Security \-\> Common components \-\> Security profiles, switch the UI to the customer Org level and select "Create Security profile." Configure the settings as follows:
 
     * **Name:** `nsi-demo-profile`  
     * **Purpose:** NSI Out-of-Band  
@@ -428,7 +426,7 @@ And ensure you enabled the necessary API services in your Comsumer project. Run 
 
 ## Export logs from VM-Series Firewall endpoint
 
-* ***Setup the access to the firewall managment console***
+* (Optional, if you are using Bastion Host for remote access, you would need the below steps for IAP tunnel access)***Setup the access to the firewall managment console***
   * ***Switch to Producer Project***
     ```
     export PRODUCER_PROJECT="<your producer project>" ###replace with producer project
@@ -444,7 +442,7 @@ And ensure you enabled the necessary API services in your Comsumer project. Run 
     export BASTION_ZONE=$(echo "$output" | awk '{print $2}')
 
     export MGMT_ADDRESS=$(gcloud compute instances list \
-    --filter="name:gcs-temp-panw-firewall" \
+    --filter="name ~ panw-firewall" \
     --format="value(networkInterfaces[0].networkIP)")
 
     gcloud compute ssh $BASTION_NAME \
@@ -455,8 +453,13 @@ And ensure you enabled the necessary API services in your Comsumer project. Run 
 
   * ***Access the web management console using your browser, if you see a warning for invalid certificate, should be good, as in the demo environment it's using self-signed certifcate, just click "proceed" (If you have multiple FW instances in the instance group, you would need to repeat below steps to get all the logs for individual FW instance)***
 
+    ***If you are using Bastion Host:***
     ```
     https://127.0.0.1:8081
+    ```
+    ***If you are have assigned public IP address to the Management Interface of NGFW, direct access the public IP as below:***
+    ```
+    https://<Public_IP_MGMT_Interface>
     ```
     ***Username:*** ```admin```
 
