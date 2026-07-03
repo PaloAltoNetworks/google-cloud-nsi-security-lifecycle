@@ -50,3 +50,34 @@ terraform apply
 ```
 
 This will automatically configure the subnetworks, Cloud NAT, MIG, and load balancers in the secondary region, and register the new zonal deployments to the existing deployment group.
+
+### 4. Configure the NGFW
+Once the Terraform deployment has completed in the secondary region, you must manually perform some post-deployment configuration inside the new region's NGFW (VM-Series Firewall) management console to make the internal Load Balancer (iLB) health check work correctly:
+
+1. **Access the NGFW Console**:
+   - If `mgmt_public_ip` is set to `true`, find the public IP of the newly deployed NGFW instance in your GCP Console.
+   - If `mgmt_public_ip` is set to `false`, use the bastion host to tunnel through IAP and access the NGFW management console on your local port (e.g. via `gcloud compute ssh`).
+2. **Log in to the Web Console**:
+   - Access the web interface via HTTPS (e.g. `https://<NGFW_IP>` or `https://127.0.0.1:8081`).
+   - Log in using the same credentials as the main region NGFW:
+     - **Username**: `admin`
+     - **Password**: `PaloAlto@123`
+3. **Update Address Objects for the New Region Subnet**:
+   - Navigate to **Objects** -> **Addresses** in the NGFW web interface.
+   - Locate the address objects representing forwarding rules (typically named `gcp-lb-fwd-rule-1` to `gcp-lb-fwd-rule-6`).
+   - Update their IP addresses to match the IP addresses assigned under the new region's dataplane subnet (e.g., changing from `10.0.1.200/32` to `11.0.1.200/32` or the respective IPs within your `subnet_cidr_data` IP range).
+   - This step is critical to ensure that the internal Load Balancer (iLB) health checks succeed in the new region.
+4. **Commit the Changes**:
+   - Click **Commit** in the top-right corner to apply the changes to the firewall configuration.
+
+### 5. Destroy
+
+* ***Run `terraform destroy` from the `/producer/multi-regions` directory.***
+
+    ```
+    cd
+    cd google-cloud-nsi-security-lifecycle/producer/multi-regions
+    terraform destroy
+    ```
+
+* ***Enter `yes` to delete all producer resources.***

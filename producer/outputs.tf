@@ -12,3 +12,13 @@ output "BOOTSTRAP_BUCKET" {
   description = "The name of the bootstrap GCS bucket."
   value       = module.bootstrap.bucket_name
 }
+
+output "MGMT_VPC" {
+  description = "The name of the management VPC network."
+  value       = google_compute_network.mgmt.name
+}
+
+output "DATA_VPC" {
+  description = "The name of the dataplane VPC network."
+  value       = google_compute_network.data.name
+}
