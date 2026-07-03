@@ -276,42 +276,14 @@ And ensure you enabled the necessary API services in your Comsumer project. Run 
 
 5. After the apply completes, you can continue the rest steps.
 
-# On the Producer Project
 
 
 > [!NOTE]
 > For the Security Lifecycle Assessment, we will use **mirror** mode of the NSI. We will not **block** any traffic, the purpose is to understand if there are any existing security issues or risks.
 
 
-## Create NSI Deployment Group:
 
-1. Navigate to Network Security \-\> Deployment groups, and select "Create deployment group." Configure the settings as follows:
-
-    * **Name:** `nsi-demo-deployment-group` (Or a preferred, descriptive name)  
-    * **Network:** `nsi-data` (Pre-provisioned by the Terraform template; this is the location of the NGFW data network)  
-    * **Purpose:** `NSI Out-of-Band` (Mirror modes)  
-      <img src="images/up1.png" alt="Picture3" width="500">
-
-
-2. Select "Create mirroring deployment" and configure the settings:
-
-    * **Name:** `nsi-demo-deployment`  
-    * **Region:** `us-west1`  
-    * **Zone:** `us-west1-a`  
-    * **Load balancer:** `nsi-panw-lb`  
-    * **Forwarding rule:** `nsi-panw-lb-rule` (The rule created by terraform, it should be auto-selected after you selected the load balancer)
-
-    **Note:** The preceding steps may be replicated to create multiple intercept deployments for individual zones, should the protection of resources across various zones be required. For the purpose of this demonstration, interception is enabled exclusively for resources within the `us-west1-a` zone.
-
-    <img src="images/up2.png" alt="Picture4" width="500">
-
-3. Select "Create" to proceed.
-
-    After a short waiting period, the intercept deployment's status should transition to "Active." This concludes the configuration within the Producer project. The process now continues with the Consumer project, where the protected resources reside.On the Consumer ProjectCreation of Intercept Endpoint & Endpoint Group
-
-    <img src="images/up3.png" alt="Picture5" width="500">
-
-# On the Consumer project
+# On the Consumer project (Customer Assessment Project)
 
 ## Create Intercept Endpoint & Endpoint Group
 
@@ -558,14 +530,6 @@ Locate the Network firewall policy created by name.
 </br>
 
 ## On the Producer Project:
-
-* ***Navigate to Network Security \-\> Cloud NSI \-\> Deployment groups. Select the created deployment group. Select the intercept deployment endpoint, and delete it.***
-
-  <img src="images/Picture17.png" alt="Picture17" width="700">
-
-* ***The deployment group may now be deleted.***
-
-  <img src="images/Picture18.png" alt="Picture18" width="700">
 
 * ***Run `terraform destroy` from the `/producer` directory.***
 
